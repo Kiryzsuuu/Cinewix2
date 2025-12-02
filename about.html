@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tentang Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <!-- About Hero -->
+    <section class="hero hero-secondary">
+        <div class="container">
+            <div class="hero-content">
+                <h1 id="aboutHeroTitle">Kenali Cinewix Lebih Dekat</h1>
+                <p id="aboutHeroDescription">Kami hadir untuk menghadirkan kemudahan dalam memesan tiket bioskop kapan saja dan di mana saja.</p>
+                <a id="aboutCta" href="register.html" class="btn-primary">Gabung Sekarang</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Content -->
+    <section class="about-section">
+        <div class="container">
+            <h2 class="section-title">Tentang Cinewix</h2>
+            <div class="about-content">
+                <p>Cinewix adalah platform pemesanan tiket bioskop online yang memudahkan Anda untuk menikmati film favorit tanpa harus mengantri. Dengan antarmuka yang intuitif, transaksi yang aman, dan pilihan film yang lengkap, kami ingin memastikan pengalaman menonton Anda selalu menyenangkan.</p>
+                <div class="features">
+                    <div class="feature-item">
+                        <span class="feature-icon">⚡</span>
+                        <h4>Pemesanan Cepat</h4>
+                        <p>Proses pemesanan yang mudah dengan dukungan pengingat jadwal.</p>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">💳</span>
+                        <h4>Pembayaran Aman</h4>
+                        <p>Didukung berbagai metode pembayaran aman dan terpercaya.</p>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🎟️</span>
+                        <h4>E-Ticket Praktis</h4>
+                        <p>Tiket digital dikirim langsung ke email Anda setelah pembayaran.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Values Section -->
+    <section class="values-section">
+        <div class="container">
+            <h2 class="section-title">Nilai dan Komitmen Kami</h2>
+            <div class="values-grid">
+                <div class="value-card">
+                    <h3>Pengalaman Pengguna</h3>
+                    <p>Kami terus menyempurnakan pengalaman pengguna agar proses pemesanan tiket semakin cepat dan nyaman.</p>
+                </div>
+                <div class="value-card">
+                    <h3>Dukungan Pelanggan</h3>
+                    <p>Tim support kami siap membantu 24/7 untuk memastikan perjalanan menonton Anda berjalan lancar.</p>
+                </div>
+                <div class="value-card">
+                    <h3>Kolaborasi Studio</h3>
+                    <p>Kami bekerja sama dengan jaringan bioskop terkemuka untuk menghadirkan film terbaru lebih cepat.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html">Film</a></li>
+                        <li><a href="schedule.html">Jadwal</a></li>
+                        <li><a href="about.html" class="active">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await userState.checkAuth();
+            } catch (error) {
+                console.warn('About page auth check failed, continuing as guest', error);
+            }
+
+            const heroTitle = document.getElementById('aboutHeroTitle');
+            const heroDescription = document.getElementById('aboutHeroDescription');
+            const ctaButton = document.getElementById('aboutCta');
+
+            if (userState?.isAuthenticated) {
+                if (heroTitle) {
+                    heroTitle.textContent = 'Selamat Datang Kembali di Cinewix';
+                }
+
+                if (heroDescription) {
+                    heroDescription.textContent = 'Nikmati kemudahan mengelola pemesanan dan terus ikuti film terbaru favoritmu.';
+                }
+
+                if (ctaButton) {
+                    ctaButton.textContent = 'Lihat Tiket Saya';
+                    ctaButton.href = 'my-bookings.html';
+                }
+            } else if (ctaButton) {
+                ctaButton.textContent = 'Gabung Sekarang';
+                ctaButton.href = 'register.html';
+            }
+
+            try {
+                await updateNavigation('about');
+            } catch (error) {
+                console.error('Failed to update navigation on about page', error);
+            }
+        });
+    </script>
+</body>
+</html>

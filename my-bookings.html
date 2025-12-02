@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+    <div id="toast" class="toast"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <section class="bookings-page">
+        <div class="container">
+            <h1 class="page-title">Riwayat Pemesanan Saya</h1>
+            <div id="bookingsContainer" class="bookings-list">
+                <!-- Bookings will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateNavigation('bookings');
+
+            if (!userState.isAuthenticated) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            await loadBookings();
+        });
+
+        async function loadBookings() {
+            showLoading('Memuat riwayat pemesanan...');
+            try {
+                const result = await api.getMyBookings();
+                hideLoading();
+                
+                if (result.success) {
+                    displayBookings(result.bookings);
+                } else {
+                    showToast('Gagal memuat riwayat pemesanan', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Terjadi kesalahan', 'error');
+                console.error('Load bookings error:', error);
+            }
+        }
+
+        function displayBookings(bookings) {
+            const container = document.getElementById('bookingsContainer');
+            
+            if (bookings.length === 0) {
+                container.innerHTML = '<p class="no-data">Anda belum memiliki riwayat pemesanan</p>';
+                return;
+            }
+
+            container.innerHTML = bookings.map(booking => `
+                <div class="booking-card">
+                    <div class="booking-header">
+                        <h3>${booking.movie.title}</h3>
+                        <span class="status-badge ${booking.status}">${booking.status.toUpperCase()}</span>
+                    </div>
+                    <div class="booking-details">
+                        <p><strong>Kode Booking:</strong> ${booking.bookingCode}</p>
+                        <p><strong>Tanggal:</strong> ${formatDate(booking.showtime.date)}</p>
+                        <p><strong>Waktu:</strong> ${booking.showtime.time}</p>
+                        <p><strong>Studio:</strong> ${booking.showtime.studio}</p>
+                        <p><strong>Kursi:</strong> ${booking.seats.map(s => s.seatNumber).join(', ')}</p>
+                        <p><strong>Total:</strong> ${formatCurrency(booking.totalPrice)}</p>
+                        <p><strong>Status Pembayaran:</strong> <span class="payment-status ${booking.paymentStatus}">${booking.paymentStatus}</span></p>
+                    </div>
+                    ${booking.status === 'pending' ? `
+                        <button onclick="cancelBooking('${booking._id}')" class="btn-cancel">Batalkan</button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function cancelBooking(bookingId) {
+            if (!confirm('Apakah Anda yakin ingin membatalkan booking ini?')) return;
+            
+            showLoading('Membatalkan booking...');
+            try {
+                const result = await api.cancelBooking(bookingId);
+                hideLoading();
+                
+                if (result.success) {
+                    showToast('Booking berhasil dibatalkan', 'success');
+                    await loadBookings();
+                } else {
+                    showToast(result.message || 'Gagal membatalkan booking', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Terjadi kesalahan', 'error');
+                console.error('Cancel booking error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

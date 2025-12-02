@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Email - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Verification Section -->
+    <section class="auth-section">
+        <div class="auth-container" style="grid-template-columns: 1fr;">
+            <div class="auth-box">
+                <div class="auth-header">
+                    <h2>Verifikasi Email</h2>
+                    <p>Masukkan kode 6 digit yang telah dikirim ke email Anda</p>
+                </div>
+
+                <form class="auth-form" id="verificationForm">
+                    <div class="verification-code-container">
+                        <input type="text" class="code-input" maxlength="1" data-index="0">
+                        <input type="text" class="code-input" maxlength="1" data-index="1">
+                        <input type="text" class="code-input" maxlength="1" data-index="2">
+                        <input type="text" class="code-input" maxlength="1" data-index="3">
+                        <input type="text" class="code-input" maxlength="1" data-index="4">
+                        <input type="text" class="code-input" maxlength="1" data-index="5">
+                    </div>
+
+                    <p id="timer" class="timer-text"></p>
+
+                    <button type="submit" class="btn-submit">Verifikasi</button>
+                </form>
+
+                <div class="auth-footer">
+                    <p>Tidak menerima kode? <a href="#" id="resendLink">Kirim ulang</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateNavigation('register');
+        });
+
+        const userId = new URLSearchParams(window.location.search).get('userId');
+        
+        if (!userId) {
+            window.location.href = 'register.html';
+        }
+
+        const codeInputs = document.querySelectorAll('.code-input');
+        const form = document.getElementById('verificationForm');
+        const resendLink = document.getElementById('resendLink');
+        const timerElement = document.getElementById('timer');
+        
+        let timeLeft = 300; // 5 minutes in seconds
+
+        // Handle input navigation
+        codeInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                if (e.target.value.length === 1 && index < codeInputs.length - 1) {
+                    codeInputs[index + 1].focus();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    codeInputs[index - 1].focus();
+                }
+            });
+        });
+
+        // Timer countdown
+        const timer = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `Kode berlaku: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                timerElement.textContent = 'Kode sudah kadaluarsa';
+                timerElement.style.color = 'red';
+            }
+        }, 1000);
+
+        // Handle form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const code = Array.from(codeInputs).map(input => input.value).join('');
+            
+            if (code.length !== 6) {
+                showToast('Mohon masukkan kode 6 digit', 'error');
+                return;
+            }
+
+            showLoading('Memverifikasi...');
+            
+            try {
+                const result = await api.verifyEmail({ userId, code });
+                
+                hideLoading();
+                
+                if (result.success) {
+                    showToast('Email berhasil diverifikasi!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'movies.html';
+                    }, 1500);
+                } else {
+                    showToast(result.message || 'Verifikasi gagal', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Terjadi kesalahan. Silakan coba lagi.', 'error');
+                console.error('Verification error:', error);
+            }
+        });
+
+        // Handle resend
+        resendLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            showLoading('Mengirim ulang kode...');
+            
+            try {
+                const result = await api.resendVerification(userId);
+                
+                hideLoading();
+                
+                if (result.success) {
+                    showToast('Kode verifikasi baru telah dikirim!', 'success');
+                    timeLeft = 300;
+                } else {
+                    showToast(result.message || 'Gagal mengirim ulang kode', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Terjadi kesalahan. Silakan coba lagi.', 'error');
+                console.error('Resend error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Saya - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </div>
+    </nav>
+
+    <main class="profile-page">
+        <section class="hero hero-secondary">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Profil Saya</h1>
+                    <p>Perbarui informasi akun dan kelola foto profilmu.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <div class="container profile-container">
+                <div class="profile-card">
+                    <div class="profile-photo-wrapper">
+                        <img id="profilePhoto" class="profile-photo" src="https://via.placeholder.com/160?text=Avatar" alt="Foto Profil">
+                        <label for="photoInput" class="btn-secondary profile-photo-button">Ganti Foto</label>
+                        <input id="photoInput" type="file" accept="image/*" hidden>
+                        <p class="profile-photo-hint">Format: JPG, PNG, GIF, atau WEBP. Maksimal 2 MB.</p>
+                    </div>
+                    <div class="profile-summary">
+                        <h2 id="profileName">Pengguna Cinewix</h2>
+                        <p id="profileEmail" class="profile-email">email@example.com</p>
+                        <p id="profileVerified" class="profile-status">Status: -</p>
+                        <div class="profile-meta">
+                            <span id="profilePhone">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-forms">
+                    <form id="profileForm" class="card profile-form">
+                        <h3>Informasi Dasar</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="firstName">Nama Depan</label>
+                                <input id="firstName" name="firstName" type="text" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Nama Belakang</label>
+                                <input id="lastName" name="lastName" type="text" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="displayName">Nama Tampilan</label>
+                                <input id="displayName" name="displayName" type="text" placeholder="Nama yang ditampilkan di aplikasi">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Nomor Telepon</label>
+                                <input id="phone" name="phone" type="tel" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="email">Email</label>
+                                <input id="email" name="email" type="email" required>
+                                <small class="input-hint">Mengganti email akan meminta verifikasi ulang.</small>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Simpan Perubahan</button>
+                        </div>
+                    </form>
+
+                    <div class="card profile-alert" id="verificationAlert" hidden>
+                        <h3>Verifikasi Email Diperlukan</h3>
+                        <p>Kami telah mengirim kode verifikasi ke email baru Anda. Silakan periksa kotak masuk dan masukkan kode tersebut.</p>
+                        <button id="goToVerification" class="btn-secondary">Masukkan Kode Verifikasi</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html">Film</a></li>
+                        <li><a href="schedule.html">Jadwal</a></li>
+                        <li><a href="about.html">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        const photoInput = document.getElementById('photoInput');
+        const profilePhoto = document.getElementById('profilePhoto');
+        const profileForm = document.getElementById('profileForm');
+        const profileName = document.getElementById('profileName');
+        const profileEmail = document.getElementById('profileEmail');
+        const profilePhone = document.getElementById('profilePhone');
+        const profileVerified = document.getElementById('profileVerified');
+        const verificationAlert = document.getElementById('verificationAlert');
+        const goToVerification = document.getElementById('goToVerification');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            showLoading('Memuat profil...');
+
+            const authenticated = await userState.checkAuth();
+            if (!authenticated) {
+                hideLoading();
+                showToast('Silakan login terlebih dahulu.', 'warning');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1200);
+                return;
+            }
+
+            try {
+                await updateNavigation('profile');
+                await loadProfile();
+            } catch (error) {
+                console.error('Load profile error:', error);
+                showToast('Gagal memuat data profil', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        async function loadProfile() {
+            const result = await api.getProfile();
+            if (result.success && result.user) {
+                populateProfile(result.user);
+                const requiresVerification = !result.user.isVerified;
+                verificationAlert.hidden = !requiresVerification;
+                if (requiresVerification) {
+                    goToVerification.dataset.userId = result.user._id || result.user.id;
+                } else {
+                    delete goToVerification.dataset.userId;
+                }
+            } else {
+                throw new Error(result.message || 'Profil tidak ditemukan');
+            }
+        }
+
+        function populateProfile(user) {
+            profileName.textContent = user.displayName || `${user.firstName} ${user.lastName}`.trim();
+            profileEmail.textContent = user.email;
+            profilePhone.textContent = user.phone || '-';
+            profileVerified.textContent = user.isVerified ? 'Status: Email terverifikasi' : 'Status: Email belum terverifikasi';
+            profileVerified.classList.toggle('is-warning', !user.isVerified);
+
+            profileForm.firstName.value = user.firstName || '';
+            profileForm.lastName.value = user.lastName || '';
+            profileForm.displayName.value = user.displayName || '';
+            profileForm.phone.value = user.phone || '';
+            profileForm.email.value = user.email || '';
+
+            if (user.profilePhotoUrl) {
+                profilePhoto.src = user.profilePhotoUrl;
+            } else {
+                const initials = encodeURIComponent(`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Cinewix User');
+                profilePhoto.src = `https://ui-avatars.com/api/?size=160&background=c97933&color=ffffff&name=${initials}`;
+            }
+        }
+
+        photoInput.addEventListener('change', async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) {
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('Ukuran file melebihi 2 MB', 'error');
+                event.target.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('photo', file);
+
+            showLoading('Mengunggah foto...');
+
+            try {
+                const result = await api.uploadProfilePhoto(formData);
+                if (result.success) {
+                    profilePhoto.src = result.photoUrl;
+                    showToast('Foto profil diperbarui', 'success');
+                } else {
+                    showToast(result.message || 'Gagal mengunggah foto', 'error');
+                }
+            } catch (error) {
+                console.error('Upload photo error:', error);
+                showToast('Terjadi kesalahan saat mengunggah foto', 'error');
+            } finally {
+                hideLoading();
+                event.target.value = '';
+            }
+        });
+
+        profileForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const payload = {
+                firstName: profileForm.firstName.value.trim(),
+                lastName: profileForm.lastName.value.trim(),
+                displayName: profileForm.displayName.value.trim(),
+                phone: profileForm.phone.value.trim(),
+                email: profileForm.email.value.trim()
+            };
+
+            showLoading('Menyimpan profil...');
+
+            try {
+                const result = await api.updateProfile(payload);
+                if (result.success && result.user) {
+                    const updatedUser = result.user;
+                    populateProfile(updatedUser);
+
+                    const requiresVerification = !updatedUser.isVerified || result.needVerification;
+                    verificationAlert.hidden = !requiresVerification;
+
+                    if (requiresVerification) {
+                        const verificationUserId = result.userId || updatedUser._id || updatedUser.id;
+                        if (verificationUserId) {
+                            goToVerification.dataset.userId = verificationUserId;
+                        }
+                    } else {
+                        delete goToVerification.dataset.userId;
+                    }
+
+                    if (result.needVerification) {
+                        showToast('Email baru perlu diverifikasi. Cek inbox Anda.', 'warning');
+                    } else {
+                        showToast('Profil berhasil diperbarui', 'success');
+                    }
+                } else {
+                    showToast(result.message || 'Gagal memperbarui profil', 'error');
+                }
+            } catch (error) {
+                console.error('Update profile error:', error);
+                showToast('Terjadi kesalahan saat memperbarui profil', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        goToVerification.addEventListener('click', () => {
+            const userId = goToVerification.dataset.userId || userState.user?._id || userState.user?.id;
+            if (!userId) {
+                showToast('ID user tidak ditemukan untuk verifikasi', 'error');
+                return;
+            }
+            window.location.href = `verify-email.html?userId=${userId}`;
+        });
+    </script>
+</body>
+</html>

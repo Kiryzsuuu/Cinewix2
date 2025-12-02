@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Film - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </div>
+    </nav>
+
+    <main class="movie-detail-page">
+        <div class="container">
+            <div id="movieDetailHero" class="movie-detail-hero">
+                <p>Memuat detail film...</p>
+            </div>
+
+            <section id="movieSummary" class="movie-summary"></section>
+
+            <section class="movie-actions">
+                <button id="bookTicketButton" class="btn-primary">Pesan Tiket</button>
+                <a id="trailerLink" class="btn-secondary" href="#" target="_blank" rel="noopener" style="display: none;">Lihat Trailer</a>
+            </section>
+
+            <section class="movie-reviews">
+                <div class="reviews-header">
+                    <h2>Ulasan Penonton</h2>
+                    <p id="reviewStats" class="review-stats"></p>
+                </div>
+                <div id="reviewsList" class="reviews-list"></div>
+                <div id="reviewFormWrapper" class="review-form-wrapper"></div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html">Film</a></li>
+                        <li><a href="schedule.html">Jadwal</a></li>
+                        <li><a href="about.html">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const movieId = params.get('movieId');
+        let currentMovie = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!movieId) {
+                renderError('Film tidak ditemukan.');
+                return;
+            }
+
+            try {
+                await userState.checkAuth();
+            } catch (error) {
+                console.warn('Auth check failed:', error);
+            }
+
+            await updateNavigation();
+            await loadMovieDetail();
+        });
+
+        function escapeHtml(value) {
+            if (typeof value !== 'string') {
+                return value;
+            }
+
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        async function loadMovieDetail() {
+            showLoading('Memuat detail film...');
+
+            try {
+                const result = await api.getMovie(movieId);
+                if (!result.success) {
+                    renderError(result.message || 'Gagal memuat detail film.');
+                    return;
+                }
+
+                currentMovie = result.movie;
+                renderMovieDetail(currentMovie);
+                renderReviews(currentMovie.reviews || []);
+                renderReviewForm();
+            } catch (error) {
+                console.error('Load movie detail error:', error);
+                renderError('Terjadi kesalahan saat memuat detail film.');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderError(message) {
+            const hero = document.getElementById('movieDetailHero');
+            hero.innerHTML = `<p class="no-data">${message}</p>`;
+            document.getElementById('movieSummary').innerHTML = '';
+            document.getElementById('reviewsList').innerHTML = '';
+            document.getElementById('reviewStats').textContent = '';
+            document.getElementById('reviewFormWrapper').innerHTML = '';
+            document.getElementById('bookTicketButton').style.display = 'none';
+            document.getElementById('trailerLink').style.display = 'none';
+        }
+
+        function renderMovieDetail(movie) {
+            const hero = document.getElementById('movieDetailHero');
+            const summary = document.getElementById('movieSummary');
+            const bookButton = document.getElementById('bookTicketButton');
+            const trailerLink = document.getElementById('trailerLink');
+
+            const releaseDateText = movie.releaseDate ? formatDate(movie.releaseDate) : 'Tidak tersedia';
+            const descriptionText = escapeHtml(movie.description || 'Belum ada deskripsi untuk film ini.');
+            const titleText = escapeHtml(movie.title || 'Tanpa Judul');
+            const genreText = Array.isArray(movie.genre)
+                ? movie.genre.map(item => escapeHtml(item)).join(', ')
+                : escapeHtml(movie.genre || 'Genre tidak diketahui');
+            const directorText = movie.director ? escapeHtml(movie.director) : 'Tidak tersedia';
+            const languageText = movie.language ? escapeHtml(movie.language) : 'Indonesia';
+            const castText = movie.cast && movie.cast.length
+                ? movie.cast.map(item => escapeHtml(item)).join(', ')
+                : 'Tidak tersedia';
+
+            const reviewCount = typeof movie.reviewCount === 'number'
+                ? movie.reviewCount
+                : (movie.reviews ? movie.reviews.length : 0);
+
+            const ratingText = typeof movie.averageUserRating === 'number' && movie.averageUserRating > 0
+                ? `${movie.averageUserRating.toFixed(1)} / 5 (${reviewCount} ulasan)`
+                : (movie.rating ? `${movie.rating} / 10` : 'Belum ada rating');
+
+            hero.innerHTML = `
+                <div class="hero-poster">
+                    ${movie.posterUrl
+                        ? `<img src="${movie.posterUrl}" alt="${movie.title}" onerror="this.src='https://via.placeholder.com/400x600?text=No+Image'">`
+                        : `<div class="poster-placeholder-large"><span class="poster-icon">🎬</span></div>`
+                    }
+                </div>
+                <div class="hero-info">
+                    <h1>${titleText}</h1>
+                    <div class="hero-meta">
+                        <span class="badge">${movie.ageRating || 'SU'}</span>
+                        <span class="meta-item">⏱️ ${movie.duration} menit</span>
+                        <span class="meta-item">⭐ ${ratingText}</span>
+                    </div>
+                    <p class="hero-genre">${genreText}</p>
+                    <p class="hero-description">${descriptionText}</p>
+                    <div class="hero-extra">
+                        <p><strong>Sutradara:</strong> ${directorText}</p>
+                        <p><strong>Pemeran:</strong> ${castText}</p>
+                        <p><strong>Bahasa:</strong> ${languageText}</p>
+                        <p><strong>Tanggal Rilis:</strong> ${releaseDateText}</p>
+                    </div>
+                </div>
+            `;
+
+            const trailerUrl = typeof movie.trailerUrl === 'string' ? movie.trailerUrl.trim() : '';
+            const hasTrailer = trailerUrl.startsWith('http');
+
+            summary.innerHTML = hasTrailer ? `
+                <h2>Sinopsis</h2>
+                <p>${descriptionText}</p>
+                <div class="trailer-note">
+                    <p>Tonton trailer resmi untuk merasakan pengalaman awal film ini.</p>
+                </div>
+            ` : `
+                <h2>Sinopsis</h2>
+                <p>${descriptionText}</p>
+            `;
+
+            bookButton.onclick = () => handleBooking(movie._id);
+            bookButton.style.display = 'inline-flex';
+
+            if (hasTrailer) {
+                trailerLink.href = trailerUrl;
+                trailerLink.style.display = 'inline-flex';
+            } else {
+                trailerLink.style.display = 'none';
+            }
+        }
+
+        function renderReviews(reviews) {
+            const stats = document.getElementById('reviewStats');
+            const list = document.getElementById('reviewsList');
+
+            if (!reviews || reviews.length === 0) {
+                stats.textContent = 'Belum ada ulasan. Jadilah yang pertama memberikan rating!';
+                list.innerHTML = '<p class="review-empty">Belum ada komentar dari penonton.</p>';
+                return;
+            }
+
+            const average = typeof currentMovie.averageUserRating === 'number'
+                ? currentMovie.averageUserRating
+                : 0;
+
+            stats.textContent = `${reviews.length} ulasan • Rata-rata ${average.toFixed(1)} dari 5`;
+
+            list.innerHTML = reviews
+                .slice()
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .map(review => {
+                    const author = escapeHtml(review.userName || 'Pengguna Cinewix');
+                    const commentText = escapeHtml(review.comment || '').replace(/\n/g, '<br>');
+
+                    return `
+                    <article class="review-card">
+                        <header class="review-header">
+                            <div>
+                                <h3 class="review-author">${author}</h3>
+                                <p class="review-date">${formatDateTime(review.createdAt)}</p>
+                            </div>
+                            <span class="review-rating">⭐ ${review.rating}/5</span>
+                        </header>
+                        <p class="review-comment">${commentText}</p>
+                    </article>
+                    `;
+                })
+                .join('');
+        }
+
+        function renderReviewForm() {
+            const wrapper = document.getElementById('reviewFormWrapper');
+
+            if (!userState.isAuthenticated) {
+                wrapper.innerHTML = `
+                    <div class="review-auth-prompt">
+                        <p>Silakan <a href="login.html">login</a> untuk memberikan rating dan komentar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const currentUserId = userState.user?._id || userState.user?.id || null;
+            const existingReview = currentUserId
+                ? (currentMovie.reviews || []).find(review => String(review.user) === String(currentUserId))
+                : null;
+
+            wrapper.innerHTML = `
+                <form id="reviewForm" class="review-form">
+                    <h3>${existingReview ? 'Perbarui Ulasan Anda' : 'Tulis Ulasan'}</h3>
+                    <div class="form-group">
+                        <label for="reviewRating">Rating</label>
+                        <select id="reviewRating" required>
+                            <option value="">Pilih rating</option>
+                            <option value="5">5 - Luar Biasa</option>
+                            <option value="4">4 - Bagus</option>
+                            <option value="3">3 - Cukup</option>
+                            <option value="2">2 - Kurang</option>
+                            <option value="1">1 - Buruk</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reviewComment">Komentar</label>
+                        <textarea id="reviewComment" rows="4" placeholder="Bagikan pendapat Anda tentang film ini" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Kirim Ulasan</button>
+                </form>
+            `;
+
+            const ratingSelect = document.getElementById('reviewRating');
+            const commentInput = document.getElementById('reviewComment');
+
+            if (existingReview) {
+                ratingSelect.value = existingReview.rating;
+                commentInput.value = existingReview.comment;
+            }
+
+            document.getElementById('reviewForm').addEventListener('submit', handleReviewSubmit);
+        }
+
+        async function handleReviewSubmit(event) {
+            event.preventDefault();
+
+            const rating = document.getElementById('reviewRating').value;
+            const comment = document.getElementById('reviewComment').value.trim();
+
+            if (!rating || !comment) {
+                showToast('Rating dan komentar wajib diisi', 'error');
+                return;
+            }
+
+            showLoading('Menyimpan ulasan...');
+
+            try {
+                const result = await api.addMovieReview(movieId, { rating: Number(rating), comment });
+
+                if (!result.success) {
+                    showToast(result.message || 'Gagal menyimpan ulasan', 'error');
+                    return;
+                }
+
+                currentMovie = result.movie;
+                renderReviews(currentMovie.reviews || []);
+                renderReviewForm();
+                renderMovieDetail(currentMovie);
+                showToast('Terima kasih atas ulasan Anda!', 'success');
+            } catch (error) {
+                console.error('Submit review error:', error);
+                showToast('Terjadi kesalahan saat menyimpan ulasan', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function handleBooking(movieIdParam) {
+            if (!userState.isAuthenticated) {
+                showToast('Silakan login terlebih dahulu untuk memesan tiket', 'warning');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
+
+            window.location.href = `booking.html?movieId=${movieIdParam}`;
+        }
+    </script>
+</body>
+</html>

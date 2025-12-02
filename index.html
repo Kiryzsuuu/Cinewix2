@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinewix - Pesan Tiket Bioskop Online</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h2>Nikmati Pengalaman Menonton yang Tak Terlupakan</h2>
+                <p>Pesan tiket bioskop favoritmu dengan mudah dan cepat</p>
+                <a href="register.html" class="btn-primary">Mulai Sekarang</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Now Showing Section -->
+    <section id="movies" class="movies-section">
+        <div class="container">
+            <h2 class="section-title">Sedang Tayang</h2>
+            <div id="moviesGrid" class="movies-grid">
+                <!-- Movies will be loaded from database -->
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="movies.html" class="btn-primary">Lihat Semua Film</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Schedule Section -->
+    <section id="schedule" class="schedule-section">
+        <div class="container">
+            <h2 class="section-title">Jadwal Tayang Hari Ini</h2>
+            <div class="schedule-container">
+                <div class="schedule-card">
+                    <h3>Studio 1</h3>
+                    <div class="time-slots">
+                        <span class="time-slot">12:00</span>
+                        <span class="time-slot">14:30</span>
+                        <span class="time-slot">17:00</span>
+                        <span class="time-slot">19:30</span>
+                    </div>
+                </div>
+                <div class="schedule-card">
+                    <h3>Studio 2</h3>
+                    <div class="time-slots">
+                        <span class="time-slot">11:30</span>
+                        <span class="time-slot">14:00</span>
+                        <span class="time-slot">16:30</span>
+                        <span class="time-slot">19:00</span>
+                    </div>
+                </div>
+                <div class="schedule-card">
+                    <h3>Studio 3</h3>
+                    <div class="time-slots">
+                        <span class="time-slot">13:00</span>
+                        <span class="time-slot">15:30</span>
+                        <span class="time-slot">18:00</span>
+                        <span class="time-slot">20:30</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <h2 class="section-title">Tentang Cinewix</h2>
+            <div class="about-content">
+                <p>Cinewix adalah platform pemesanan tiket bioskop online yang memudahkan Anda untuk menikmati film favorit tanpa harus mengantri. Dengan sistem yang mudah dan cepat, Anda dapat memilih film, jadwal, dan kursi favorit Anda hanya dalam beberapa klik.</p>
+                <div class="features">
+                    <div class="feature-item">
+                        <span class="feature-icon">⚡</span>
+                        <h4>Pemesanan Cepat</h4>
+                        <p>Proses pemesanan yang mudah dan efisien</p>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">💳</span>
+                        <h4>Pembayaran Aman</h4>
+                        <p>Berbagai metode pembayaran yang aman</p>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🎟️</span>
+                        <h4>E-Ticket</h4>
+                        <p>Dapatkan tiket digital langsung di email</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html">Film</a></li>
+                        <li><a href="schedule.html">Jadwal</a></li>
+                        <li><a href="about.html">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        // Load movies on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Home page loading...');
+            await updateNavigation('home');
+            
+            // Load movies
+            try {
+                console.log('Fetching movies...');
+                const response = await fetch('/api/movies');
+                const result = await response.json();
+                console.log('Movies response:', result);
+                
+                if (result.success && result.movies && result.movies.length > 0) {
+                    displayMovies(result.movies.slice(0, 4)); // Show only first 4 movies
+                    console.log('Movies displayed successfully');
+                } else {
+                    console.log('No movies found or API error');
+                    const container = document.getElementById('moviesGrid');
+                    if (container) {
+                        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #999;">Tidak ada film yang tersedia saat ini.</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading movies:', error);
+                const container = document.getElementById('moviesGrid');
+                if (container) {
+                    container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #e74c3c;">Gagal memuat film. Silakan refresh halaman.</div>';
+                }
+            }
+            
+        });
+        
+        // Add smooth scrolling for anchor links (delegated to document)
+        document.addEventListener('click', function(e) {
+            // Check if clicked element is a link or inside a link
+            const link = e.target.closest('a[href^="#"]');
+            if (link) {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const target = document.querySelector(targetId);
+                if (target) {
+                    console.log('Scrolling to:', targetId);
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                } else {
+                    console.warn('Target not found:', targetId);
+                }
+            }
+        });
+
+        function displayMovies(movies) {
+            console.log('Displaying movies:', movies);
+            const container = document.getElementById('moviesGrid');
+            
+            if (!container) {
+                console.error('Movies container not found!');
+                return;
+            }
+            
+            if (!movies || movies.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #999;">Tidak ada film yang tersedia.</div>';
+                return;
+            }
+            
+            container.innerHTML = movies.map(movie => `
+                <div class="movie-card" onclick="goToMovies('${movie._id}')">
+                    <div class="movie-poster">
+                        ${movie.posterUrl 
+                            ? `<img src="${movie.posterUrl}" alt="${movie.title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\'poster-placeholder\'><span class=\'poster-icon\'>🎬</span></div>'">`
+                            : `<div class="poster-placeholder"><span class="poster-icon">🎬</span></div>`
+                        }
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">${movie.title}</h3>
+                        <div class="movie-meta">
+                            <p class="movie-genre">${Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre}</p>
+                            <div class="movie-stats">
+                                <span class="movie-rating"><span class="star-icon">⭐</span> ${movie.rating}/10</span>
+                                <span class="movie-duration"><span class="clock-icon">⏱️</span> ${movie.duration} menit</span>
+                            </div>
+                        </div>
+                        <button class="btn-book" onclick="event.stopPropagation(); goToMovies('${movie._id}')">
+                            <span class="btn-icon">🎫</span>
+                            Pesan Tiket
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function goToMovies(movieId) {
+            if (movieId) {
+                window.location.href = `movies.html?movieId=${movieId}`;
+            } else {
+                window.location.href = 'movies.html';
+            }
+        }
+    </script>
+</body>
+</html>

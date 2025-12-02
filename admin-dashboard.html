@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--card-background);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .management-sections {
+            display: grid;
+            gap: 3rem;
+        }
+
+        .section {
+            background: var(--card-background);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .add-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background: var(--background-secondary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .action-btn {
+            padding: 0.25rem 0.75rem;
+            margin: 0 0.25rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .edit-btn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .movie-poster {
+            width: 50px;
+            height: 75px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffffff;
+            padding: 2.5rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 640px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--border-color, #d8d2c2);
+            border-radius: 10px;
+            background: #ffffff;
+            color: var(--text-primary);
+            font-size: 1rem;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(177, 116, 87, 0.15);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .form-actions .btn-cancel,
+        .form-actions .btn-submit {
+            min-width: 140px;
+            padding: 0.85rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-cancel,
+        .btn-submit {
+            border-radius: 12px;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-submit {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .form-actions .btn-cancel:hover,
+        .form-actions .btn-submit:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 10px 22px rgba(177, 116, 87, 0.3);
+        }
+
+        .genre-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .genre-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Admin Dashboard</h1>
+            <p>Kelola sistem cinema dan transaksi</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Users</h3>
+                <div class="stat-number" id="totalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Movies</h3>
+                <div class="stat-number" id="totalMovies">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Bookings</h3>
+                <div class="stat-number" id="totalBookings">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Revenue</h3>
+                <div class="stat-number" id="totalRevenue">-</div>
+            </div>
+        </div>
+
+        <div class="management-sections">
+            <!-- Movie Management -->
+            <div class="section">
+                <h2>
+                    Kelola Film
+                    <button class="add-btn" onclick="openMovieModal()">+ Tambah Film</button>
+                </h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Poster</th>
+                                <th>Judul</th>
+                                <th>Genre</th>
+                                <th>Durasi</th>
+                                <th>Rating</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="moviesTableBody">
+                            <!-- Movies will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="section">
+                <h2>Kelola User</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nama</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Transaction Management -->
+            <div class="section">
+                <h2>Transaksi Terbaru</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Kode Booking</th>
+                                <th>User</th>
+                                <th>Film</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTableBody">
+                            <!-- Transactions will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movie Modal -->
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <h2 id="movieModalTitle">Tambah Film Baru</h2>
+            <form id="movieForm">
+                <div class="form-group">
+                    <label for="movieTitle">Judul Film *</label>
+                    <input type="text" id="movieTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieDescription">Deskripsi *</label>
+                    <textarea id="movieDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="movieGenres">Genre (pisahkan dengan koma) *</label>
+                    <input type="text" id="movieGenres" placeholder="Laga, Drama, Sci-Fi" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieDuration">Durasi (menit) *</label>
+                    <input type="number" id="movieDuration" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieRating">Rating *</label>
+                    <select id="movieRating" required>
+                        <option value="">Pilih Rating</option>
+                        <option value="G">G - General Audiences</option>
+                        <option value="PG">PG - Parental Guidance</option>
+                        <option value="PG-13">PG-13 - Parents Strongly Cautioned</option>
+                        <option value="R">R - Restricted</option>
+                        <option value="NC-17">NC-17 - Adults Only</option>
+                        <option value="13+">13+ - Usia 13+</option>
+                        <option value="17+">17+ - Usia 17+</option>
+                        <option value="21+">21+ - Usia 21+</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="moviePosterUrl">URL Poster *</label>
+                    <input type="url" id="moviePosterUrl" placeholder="https://example.com/poster.jpg" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieTrailerUrl">URL Trailer</label>
+                    <input type="url" id="movieTrailerUrl" placeholder="https://youtube.com/watch?v=...">
+                </div>
+                <div class="form-group">
+                    <label for="movieReleaseDate">Tanggal Rilis *</label>
+                    <input type="date" id="movieReleaseDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieDirector">Sutradara *</label>
+                    <input type="text" id="movieDirector" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieCast">Pemeran (pisahkan dengan koma) *</label>
+                    <input type="text" id="movieCast" placeholder="Tom Cruise, Miles Teller, Jennifer Connelly" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieLanguage">Bahasa *</label>
+                    <input type="text" id="movieLanguage" value="Indonesian" required>
+                </div>
+                <div class="form-group">
+                    <label for="movieAgeRating">Batas Usia *</label>
+                    <select id="movieAgeRating" required>
+                        <option value="">Pilih Batas Usia</option>
+                        <option value="SU">SU - Semua Umur</option>
+                        <option value="13+">13+ - Remaja 13 tahun ke atas</option>
+                        <option value="17+">17+ - Dewasa 17 tahun ke atas</option>
+                        <option value="21+">21+ - Dewasa 21 tahun ke atas</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeMovieModal()">Batal</button>
+                    <button type="submit" class="btn-submit">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        let currentMovieId = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Dashboard loading...');
+            
+            try {
+                await userState.checkAuth();
+                console.log('User state:', userState);
+                console.log('Is authenticated:', userState.isAuthenticated);
+                console.log('Is admin:', userState.isAdmin());
+            } catch (error) {
+                console.error('Auth check failed:', error);
+            }
+            
+            // Check if user is admin
+            if (!userState.isAuthenticated) {
+                showToast('Silakan login terlebih dahulu', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+            
+            if (!userState.isAdmin()) {
+                showToast('Akses ditolak. Hanya admin yang dapat mengakses dashboard.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                return;
+            }
+
+            console.log('Admin access granted');
+            await updateNavigation('admin');
+            loadDashboardData();
+        });
+        // Load all dashboard data
+        async function loadDashboardData(showLoader = true) {
+            let loaderVisible = false;
+            try {
+                if (showLoader) {
+                    showLoading();
+                    loaderVisible = true;
+                }
+                
+                const [statsResponse, moviesResponse, usersResponse, transactionsResponse] = await Promise.all([
+                    api.getDashboardStats(),
+                    api.getMovies(),
+                    api.getAllUsers(),
+                    api.getAllTransactions()
+                ]);
+
+                if (!statsResponse.success) {
+                    throw new Error(statsResponse.message || 'Gagal memuat statistik');
+                }
+
+                const stats = statsResponse.stats;
+                document.getElementById('totalUsers').textContent = stats.totalUsers;
+                document.getElementById('totalMovies').textContent = stats.totalMovies;
+                document.getElementById('totalBookings').textContent = stats.totalBookings;
+                document.getElementById('totalRevenue').textContent = formatCurrency(stats.totalRevenue);
+
+                const movies = moviesResponse.success ? moviesResponse.movies : [];
+                const users = usersResponse.success ? usersResponse.users : [];
+                const transactions = transactionsResponse.success ? transactionsResponse.transactions : [];
+
+                displayMovies(movies);
+                displayUsers(users);
+                displayTransactions(transactions);
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showToast('Gagal memuat data dashboard', 'error');
+            } finally {
+                if (loaderVisible) {
+                    hideLoading();
+                }
+            }
+        }
+
+        function renderMovieRowContent(movie) {
+            const genres = Array.isArray(movie.genre)
+                ? movie.genre
+                : (movie.genre ? [movie.genre] : []);
+
+            return `
+                <td>
+                    <img src="${movie.posterUrl}" alt="${movie.title}" class="movie-poster"
+                         onerror="this.src='https://via.placeholder.com/50x75?text=No+Image'">
+                </td>
+                <td>${movie.title}</td>
+                <td>
+                    <div class="genre-tags">
+                        ${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
+                    </div>
+                </td>
+                <td>${movie.duration} min</td>
+                <td>${movie.rating}</td>
+                <td>
+                    <span class="status ${movie.isActive ? 'active' : 'inactive'}">
+                        ${movie.isActive ? 'Aktif' : 'Tidak Aktif'}
+                    </span>
+                </td>
+                <td>
+                    <button class="action-btn edit-btn" onclick="editMovie('${movie._id}')">Edit</button>
+                    <button class="action-btn delete-btn" onclick="deleteMovie('${movie._id}')">Hapus</button>
+                </td>
+            `;
+        }
+
+        function updateMovieRow(row, movie) {
+            const genres = Array.isArray(movie.genre)
+                ? movie.genre
+                : (movie.genre ? [movie.genre] : []);
+
+            const statusText = movie.isActive ? 'Aktif' : 'Tidak Aktif';
+            const statusClass = movie.isActive ? 'active' : 'inactive';
+
+            if (!row.cells.length) {
+                row.innerHTML = renderMovieRowContent(movie);
+                return;
+            }
+
+            row.cells[0].innerHTML = `
+                <img src="${movie.posterUrl}" alt="${movie.title}" class="movie-poster"
+                     onerror="this.src='https://via.placeholder.com/50x75?text=No+Image'">
+            `;
+
+            row.cells[1].textContent = movie.title;
+
+            row.cells[2].innerHTML = `
+                <div class="genre-tags">
+                    ${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
+                </div>
+            `;
+
+            row.cells[3].textContent = `${movie.duration} min`;
+            row.cells[4].textContent = movie.rating;
+            row.cells[5].innerHTML = `
+                <span class="status ${statusClass}">
+                    ${statusText}
+                </span>
+            `;
+            row.cells[6].innerHTML = `
+                <button class="action-btn edit-btn" onclick="editMovie('${movie._id}')">Edit</button>
+                <button class="action-btn delete-btn" onclick="deleteMovie('${movie._id}')">Hapus</button>
+            `;
+        }
+
+        // Display movies in table without clearing everything to avoid flicker
+        function displayMovies(movies) {
+            const tbody = document.getElementById('moviesTableBody');
+            const existingRows = new Map(Array.from(tbody.querySelectorAll('tr'))
+                .map(row => [row.dataset.id, row]));
+            const activeIds = new Set();
+
+            movies.forEach(movie => {
+                const movieId = movie._id || movie.id;
+                if (!movieId) {
+                    return;
+                }
+
+                const content = renderMovieRowContent(movie);
+                let row = existingRows.get(movieId);
+
+                if (!row) {
+                    row = document.createElement('tr');
+                    row.innerHTML = content;
+                    tbody.appendChild(row);
+                } else {
+                    updateMovieRow(row, movie);
+                }
+
+                row.dataset.id = movieId;
+
+                activeIds.add(movieId);
+            });
+
+            existingRows.forEach((row, id) => {
+                if (!activeIds.has(id)) {
+                    row.remove();
+                }
+            });
+        }
+
+        // Display users in table
+        function displayUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.firstName} ${user.lastName}</td>
+                    <td>${user.email}</td>
+                    <td>
+                        <span class="role-badge ${user.role}">${user.role}</span>
+                    </td>
+                    <td>
+                        <span class="status ${user.isVerified ? 'verified' : 'pending'}">
+                            ${user.isVerified ? 'Verified' : 'Pending'}
+                        </span>
+                    </td>
+                    <td>
+                        ${!user.isPermanent ? `
+                            <select onchange="updateUserRole('${user._id}', this.value)">
+                                <option value="${user.role}">${user.role}</option>
+                                ${user.role !== 'admin' ? '<option value="admin">admin</option>' : ''}
+                                ${user.role !== 'user' ? '<option value="user">user</option>' : ''}
+                            </select>
+                        ` : '<span class="permanent">Permanent</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Display transactions in table
+        function displayTransactions(transactions) {
+            const tbody = document.getElementById('transactionsTableBody');
+            tbody.innerHTML = transactions.slice(0, 10).map(transaction => `
+                <tr>
+                    <td>${transaction.booking?.bookingCode || 'N/A'}</td>
+                    <td>${transaction.user?.firstName} ${transaction.user?.lastName}</td>
+                    <td>${transaction.booking?.movie?.title || 'N/A'}</td>
+                    <td>${formatCurrency(transaction.amount)}</td>
+                    <td>
+                        <span class="status ${transaction.status}">${transaction.status}</span>
+                    </td>
+                    <td>${formatDate(transaction.createdAt)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Movie management functions
+        function openMovieModal(movieId = null) {
+            currentMovieId = movieId;
+            const modal = document.getElementById('movieModal');
+            const title = document.getElementById('movieModalTitle');
+            
+            if (movieId) {
+                title.textContent = 'Edit Film';
+                loadMovieData(movieId);
+            } else {
+                title.textContent = 'Tambah Film Baru';
+                document.getElementById('movieForm').reset();
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeMovieModal() {
+            document.getElementById('movieModal').style.display = 'none';
+            currentMovieId = null;
+        }
+
+        async function loadMovieData(movieId) {
+            try {
+                const result = await api.getMovie(movieId);
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Gagal memuat data film');
+                }
+
+                const movie = result.movie;
+
+                document.getElementById('movieTitle').value = movie.title;
+                document.getElementById('movieDescription').value = movie.description;
+                document.getElementById('movieGenres').value = Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre;
+                document.getElementById('movieDuration').value = movie.duration;
+                document.getElementById('movieRating').value = movie.rating;
+                document.getElementById('moviePosterUrl').value = movie.posterUrl;
+                document.getElementById('movieTrailerUrl').value = movie.trailerUrl || '';
+                document.getElementById('movieReleaseDate').value = movie.releaseDate ? movie.releaseDate.split('T')[0] : '';
+                document.getElementById('movieDirector').value = movie.director || '';
+                document.getElementById('movieCast').value = Array.isArray(movie.cast) ? movie.cast.join(', ') : '';
+                document.getElementById('movieLanguage').value = movie.language || '';
+                document.getElementById('movieAgeRating').value = movie.ageRating || '';
+
+            } catch (error) {
+                console.error('Error loading movie:', error);
+                showToast(error.message || 'Gagal memuat data film', 'error');
+            }
+        }
+
+        // Handle movie form submission
+        document.getElementById('movieForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                showLoading();
+                
+                const formData = {
+                    title: document.getElementById('movieTitle').value,
+                    description: document.getElementById('movieDescription').value,
+                    genre: document.getElementById('movieGenres').value.split(',').map(g => g.trim()),
+                    duration: parseInt(document.getElementById('movieDuration').value),
+                    rating: document.getElementById('movieRating').value,
+                    posterUrl: document.getElementById('moviePosterUrl').value,
+                    trailerUrl: document.getElementById('movieTrailerUrl').value,
+                    releaseDate: document.getElementById('movieReleaseDate').value,
+                    director: document.getElementById('movieDirector').value,
+                    cast: document.getElementById('movieCast').value.split(',').map(c => c.trim()),
+                    language: document.getElementById('movieLanguage').value,
+                    ageRating: document.getElementById('movieAgeRating').value
+                };
+                
+                if (currentMovieId) {
+                    await api.updateMovie(currentMovieId, formData);
+                    showToast('Film berhasil diupdate', 'success');
+                } else {
+                    await api.createMovie(formData);
+                    showToast('Film berhasil ditambahkan', 'success');
+                }
+                
+                closeMovieModal();
+                loadDashboardData(false);
+                
+            } catch (error) {
+                console.error('Error saving movie:', error);
+                showToast('Gagal menyimpan film', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Edit movie
+        function editMovie(movieId) {
+            openMovieModal(movieId);
+        }
+
+        // Delete movie
+        async function deleteMovie(movieId) {
+            if (!confirm('Apakah Anda yakin ingin menghapus film ini?')) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                await api.deleteMovie(movieId);
+                showToast('Film berhasil dihapus', 'success');
+                loadDashboardData(false);
+            } catch (error) {
+                console.error('Error deleting movie:', error);
+                showToast('Gagal menghapus film', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Update user role
+        async function updateUserRole(userId, newRole) {
+            try {
+                await api.updateUserRole(userId, newRole);
+                showToast('Role user berhasil diupdate', 'success');
+            } catch (error) {
+                console.error('Error updating user role:', error);
+                showToast('Gagal mengupdate role user', 'error');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('movieModal');
+            if (event.target === modal) {
+                closeMovieModal();
+            }
+        }
+    </script>
+</body>
+</html>

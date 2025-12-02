@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Film - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </div>
+    </nav>
+
+    <main class="movies-page">
+        <section class="hero hero-secondary">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Daftar Film Cinewix</h1>
+                    <p>Temukan film favoritmu dan pesan tiketnya dengan mudah.</p>
+                    <div class="search-bar">
+                        <input id="searchInput" class="search-input" type="text" placeholder="Cari film berdasarkan judul, genre, atau sutradara">
+                        <button class="btn-search" type="button" onclick="searchMovies()">Cari</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="movies-section expanded">
+            <div class="container">
+                <h2 class="section-title">Film Tersedia</h2>
+                <div id="moviesContainer" class="movies-grid"></div>
+            </div>
+        </section>
+    </main>
+
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <span class="close" role="button" tabindex="0" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html" aria-current="page">Film</a></li>
+                        <li><a href="schedule.html">Jadwal</a></li>
+                        <li><a href="about.html">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        let allMovies = [];
+
+        function escapeHtml(value) {
+            if (typeof value !== 'string') {
+                return value;
+            }
+
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function getDisplayRating(movie = {}) {
+            if (typeof movie.averageUserRating === 'number' && movie.averageUserRating > 0) {
+                return `${movie.averageUserRating.toFixed(1)} / 5`;
+            }
+
+            if (typeof movie.rating === 'number' && movie.rating > 0) {
+                return `${movie.rating} / 10`;
+            }
+
+            return 'Belum ada rating';
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            showLoading('Memuat film...');
+
+            try {
+                await userState.checkAuth();
+            } catch (error) {
+                console.warn('Auth check failed, continuing as guest', error);
+            }
+
+            try {
+                await updateNavigation('movies');
+                await loadMovies();
+            } catch (error) {
+                console.error('Initial load error:', error);
+                showToast('Terjadi kesalahan saat memuat film', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        async function loadMovies() {
+            const container = document.getElementById('moviesContainer');
+            if (!container) {
+                console.error('Movies container not found');
+                return;
+            }
+
+            container.innerHTML = '<p class="loading-placeholder">Memuat film...</p>';
+
+            try {
+                const result = await api.getMovies();
+
+                if (result.success && Array.isArray(result.movies)) {
+                    allMovies = result.movies;
+                    displayMovies(allMovies);
+                    return;
+                }
+
+                container.innerHTML = '<p class="no-movies">Tidak ada film yang tersedia</p>';
+                showToast(result.message || 'Gagal memuat film', 'error');
+            } catch (error) {
+                console.error('Error loading movies:', error);
+                container.innerHTML = '<p class="no-movies">Gagal memuat film. Coba lagi nanti.</p>';
+                showToast('Terjadi kesalahan saat memuat film', 'error');
+            }
+        }
+
+        function displayMovies(movies) {
+            const container = document.getElementById('moviesContainer');
+            if (!container) {
+                return;
+            }
+
+            if (!Array.isArray(movies) || movies.length === 0) {
+                container.innerHTML = '<p class="no-movies">Tidak ada film yang ditemukan</p>';
+                return;
+            }
+
+            container.innerHTML = movies.map((movie = {}) => {
+                const movieId = movie._id || '';
+                const title = escapeHtml(movie.title || 'Tanpa Judul');
+                const posterUrl = movie.posterUrl ? escapeHtml(movie.posterUrl) : '';
+                const genres = Array.isArray(movie.genre)
+                    ? movie.genre.map(item => escapeHtml(item)).join(', ')
+                    : escapeHtml(movie.genre || 'Genre tidak diketahui');
+                const durationText = typeof movie.duration === 'number'
+                    ? `${movie.duration} menit`
+                    : 'Durasi tidak tersedia';
+
+                return `
+                    <div class="movie-card" onclick="showMovieDetail('${movieId}')">
+                        <div class="movie-poster">
+                            ${posterUrl
+                                ? `<img src="${posterUrl}" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">`
+                                : `<div class="poster-placeholder"><span class="poster-icon">🎬</span></div>`
+                            }
+                        </div>
+                        <div class="movie-info">
+                            <h3 class="movie-title">${title}</h3>
+                            <div class="movie-meta">
+                                <p class="movie-genre">${genres}</p>
+                                <div class="movie-stats">
+                                    <span class="movie-rating"><span class="star-icon">⭐</span> ${getDisplayRating(movie)}</span>
+                                    <span class="movie-duration"><span class="clock-icon">⏱️</span> ${durationText}</span>
+                                </div>
+                            </div>
+                            <button class="btn-book" onclick="event.stopPropagation(); goToBooking('${movieId}')">
+                                <span class="btn-icon">🎫</span>
+                                Pesan Tiket
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function searchMovies() {
+            const input = document.getElementById('searchInput');
+            const query = input?.value || '';
+
+            if (!query.trim()) {
+                displayMovies(allMovies);
+                return;
+            }
+
+            showLoading('Mencari film...');
+
+            try {
+                const result = await api.searchMovies(query.trim());
+                if (result.success) {
+                    displayMovies(result.movies);
+                } else {
+                    showToast(result.message || 'Gagal mencari film', 'error');
+                }
+            } catch (error) {
+                console.error('Search movies error:', error);
+                showToast('Terjadi kesalahan saat mencari film', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        document.getElementById('searchInput')?.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                searchMovies();
+            }
+        });
+
+        async function showMovieDetail(movieId) {
+            if (!movieId) {
+                showToast('Film tidak ditemukan', 'error');
+                return;
+            }
+
+            showLoading('Memuat detail film...');
+
+            try {
+                const result = await api.getMovie(movieId);
+
+                if (!result.success) {
+                    showToast(result.message || 'Gagal memuat detail film', 'error');
+                    return;
+                }
+
+                const movie = result.movie;
+                const modal = document.getElementById('movieModal');
+                const modalBody = document.getElementById('modalBody');
+
+                const titleText = escapeHtml(movie.title || 'Tanpa Judul');
+                const ratingText = getDisplayRating(movie);
+                const genreText = Array.isArray(movie.genre)
+                    ? movie.genre.map(item => escapeHtml(item)).join(', ')
+                    : escapeHtml(movie.genre || 'Genre tidak diketahui');
+                const descriptionText = escapeHtml(movie.description || 'Belum ada deskripsi.');
+                const directorText = movie.director ? escapeHtml(movie.director) : 'Tidak tersedia';
+                const castText = Array.isArray(movie.cast) && movie.cast.length
+                    ? movie.cast.map(item => escapeHtml(item)).join(', ')
+                    : 'Tidak tersedia';
+                const languageText = movie.language ? escapeHtml(movie.language) : 'Indonesia';
+                const releaseDateText = movie.releaseDate ? formatDate(movie.releaseDate) : 'Tidak tersedia';
+
+                modalBody.innerHTML = `
+                    <div class="movie-detail">
+                        <div class="detail-poster">
+                            ${movie.posterUrl
+                                ? `<img src="${escapeHtml(movie.posterUrl)}" alt="${titleText}" onerror="this.src='https://via.placeholder.com/400x600?text=No+Image'">`
+                                : `<div class="poster-placeholder-large"><span class="poster-icon">🎬</span></div>`
+                            }
+                        </div>
+                        <div class="detail-info">
+                            <h2>${titleText}</h2>
+                            <div class="detail-meta">
+                                <span class="badge">${escapeHtml(movie.ageRating || 'SU')}</span>
+                                <span class="meta-item">⏱️ ${typeof movie.duration === 'number' ? `${movie.duration} menit` : 'Durasi tidak tersedia'}</span>
+                                <span class="meta-item">⭐ ${ratingText}</span>
+                            </div>
+                            <p class="detail-genre">${genreText}</p>
+                            <p class="detail-description">${descriptionText}</p>
+                            <div class="detail-extra">
+                                <p><strong>Sutradara:</strong> ${directorText}</p>
+                                <p><strong>Pemain:</strong> ${castText}</p>
+                                <p><strong>Bahasa:</strong> ${languageText}</p>
+                                <p><strong>Tanggal Rilis:</strong> ${releaseDateText}</p>
+                            </div>
+                            <div class="detail-actions">
+                                <button class="btn-secondary" onclick="goToMovieDetail('${movie._id}')">Lihat Detail</button>
+                                <button class="btn-primary" onclick="goToBooking('${movie._id}')">Pesan Tiket</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                modal.style.display = 'block';
+            } catch (error) {
+                console.error('Show movie detail error:', error);
+                showToast('Terjadi kesalahan saat memuat detail film', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('movieModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function goToBooking(movieId) {
+            if (!userState.isAuthenticated) {
+                showToast('Silakan login terlebih dahulu untuk memesan tiket', 'warning');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
+
+            window.location.href = `booking.html?movieId=${movieId}`;
+        }
+
+        function goToMovieDetail(movieId) {
+            window.location.href = `movie-detail.html?movieId=${movieId}`;
+        }
+
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('movieModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

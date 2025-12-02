@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Tayang - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Schedule Hero -->
+    <section class="hero hero-secondary">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Jadwal Tayang Cinewix</h1>
+                <p>Pilih jadwal tayang terbaik untuk pengalaman menonton yang nyaman.</p>
+                <a href="movies.html" class="btn-primary">Lihat Semua Film</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Daily Schedule -->
+    <section class="schedule-section expanded">
+        <div class="container">
+            <h2 class="section-title">Jadwal Hari Ini</h2>
+            <p class="section-subtitle">Jadwal tayang terbaru untuk masing-masing studio.</p>
+            <div class="schedule-container">
+                <div class="schedule-card">
+                    <h3>Studio 1</h3>
+                    <div class="time-slots">
+                        <span class="time-slot">10:30</span>
+                        <span class="time-slot">13:00</span>
+                        <span class="time-slot">15:30</span>
+                        <span class="time-slot">18:00</span>
+                        <span class="time-slot">20:30</span>
+                    </div>
+                </div>
+                <div class="schedule-card">
+                    <h3>Studio 2</h3>
+                    <div class="time-slots">
+                        <span class="time-slot">11:00</span>
+                        <span class="time-slot">13:30</span>
+                        <span class="time-slot">16:00</span>
+                        <span class="time-slot">18:30</span>
+                        <span class="time-slot">21:00</span>
+                    </div>
+                </div>
+                <div class="schedule-card">
+                    <h3>Studio 3</h3>
+                    <div class="time-slots">
+                        <span class="time-slot">12:00</span>
+                        <span class="time-slot">14:30</span>
+                        <span class="time-slot">17:00</span>
+                        <span class="time-slot">19:30</span>
+                        <span class="time-slot">22:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Weekly Highlights -->
+    <section class="schedule-highlights">
+        <div class="container">
+            <h2 class="section-title">Highlight Mingguan</h2>
+            <div class="highlight-grid">
+                <div class="highlight-card">
+                    <h3>Premier Jumat</h3>
+                    <p>Nikmati pemutaran perdana film terbaru setiap Jumat malam.</p>
+                </div>
+                <div class="highlight-card">
+                    <h3>Family Weekend</h3>
+                    <p>Diskon khusus film keluarga setiap Sabtu dan Minggu.</p>
+                </div>
+                <div class="highlight-card">
+                    <h3>Midnight Screening</h3>
+                    <p>Pengalaman nonton eksklusif mulai pukul 23:30 untuk film pilihan.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html">Film</a></li>
+                        <li><a href="schedule.html" class="active">Jadwal</a></li>
+                        <li><a href="about.html">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateNavigation('schedule');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Register Section -->
+    <section class="auth-section">
+        <div class="auth-container register-container">
+            <div class="auth-image">
+                <div class="image-content">
+                    <h3>🎟️</h3>
+                    <h2>Bergabunglah dengan Cinewix</h2>
+                    <p>Mulai petualangan sinematik Anda bersama kami</p>
+                    <ul class="benefits-list">
+                        <li>✓ Akses ke semua film terbaru</li>
+                        <li>✓ Notifikasi film dan promo terbaru</li>
+                        <li>✓ Poin reward setiap pemesanan</li>
+                        <li>✓ Pengalaman menonton yang lebih personal</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="auth-box">
+                <div class="auth-header">
+                    <h2>Buat Akun Baru</h2>
+                    <p>Daftar dan mulai memesan tiket bioskop</p>
+                </div>
+
+                <form class="auth-form" action="#" method="POST" onsubmit="handleRegister(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">Nama Depan</label>
+                            <input 
+                                type="text" 
+                                id="firstName" 
+                                name="firstName" 
+                                placeholder="John" 
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="lastName">Nama Belakang</label>
+                            <input 
+                                type="text" 
+                                id="lastName" 
+                                name="lastName" 
+                                placeholder="Doe" 
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            placeholder="nama@email.com" 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Nomor Telepon</label>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="phone" 
+                            placeholder="08123456789" 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            placeholder="Minimal 8 karakter" 
+                            required
+                            minlength="8"
+                        >
+                        <small class="form-hint">Minimal 8 karakter dengan kombinasi huruf dan angka</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Konfirmasi Password</label>
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            name="confirmPassword" 
+                            placeholder="Ketik ulang password" 
+                            required
+                            minlength="8"
+                        >
+                    </div>
+
+                    <div class="form-group-checkbox">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <label for="terms">
+                            Saya setuju dengan <a href="#">Syarat & Ketentuan</a> dan <a href="#">Kebijakan Privasi</a>
+                        </label>
+                    </div>
+
+                    <div class="form-group-checkbox">
+                        <input type="checkbox" id="newsletter" name="newsletter">
+                        <label for="newsletter">
+                            Kirim saya informasi tentang film terbaru dan promo menarik
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Daftar Sekarang</button>
+                </form>
+
+                <div class="auth-divider">
+                    <span>atau</span>
+                </div>
+
+                <div class="social-login">
+                    <button class="btn-social btn-google">
+                        <span>🔍</span> Daftar dengan Google
+                    </button>
+                    <button class="btn-social btn-facebook">
+                        <span>📘</span> Daftar dengan Facebook
+                    </button>
+                </div>
+
+                <div class="auth-footer">
+                    <p>Sudah punya akun? <a href="login.html">Masuk di sini</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html">Film</a></li>
+                        <li><a href="schedule.html">Jadwal</a></li>
+                        <li><a href="about.html">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateNavigation('register');
+        });
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showToast('Password dan konfirmasi password tidak cocok!', 'error');
+                return;
+            }
+            
+            const formData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                password: password
+            };
+
+            showLoading('Mendaftarkan akun...');
+            
+            try {
+                const result = await api.register(formData);
+                
+                hideLoading();
+                
+                if (result.success) {
+                    showToast('Registrasi berhasil! Kode verifikasi telah dikirim ke email Anda.', 'success');
+                    setTimeout(() => {
+                        window.location.href = `verify-email.html?userId=${result.userId}`;
+                    }, 1500);
+                } else {
+                    showToast(result.message || 'Registrasi gagal', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Terjadi kesalahan. Silakan coba lagi.', 'error');
+                console.error('Register error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

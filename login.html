@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Cinewix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">CINEWIX</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <!-- Navigation items will be populated by JavaScript -->
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Login Section -->
+    <section class="auth-section">
+        <div class="auth-container">
+            <div class="auth-box">
+                <div class="auth-header">
+                    <h2>Selamat Datang Kembali!</h2>
+                    <p>Masuk ke akun Cinewix Anda</p>
+                </div>
+
+                <form class="auth-form" action="#" method="POST" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            placeholder="nama@email.com" 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            placeholder="Masukkan password Anda" 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-options">
+                        <div class="remember-me">
+                            <input type="checkbox" id="remember" name="remember">
+                            <label for="remember">Ingat saya</label>
+                        </div>
+                        <a href="#" class="forgot-password">Lupa password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Masuk</button>
+                </form>
+
+                <div class="auth-divider">
+                    <span>atau</span>
+                </div>
+
+                <div class="social-login">
+                    <button class="btn-social btn-google">
+                        <span>🔍</span> Masuk dengan Google
+                    </button>
+                    <button class="btn-social btn-facebook">
+                        <span>📘</span> Masuk dengan Facebook
+                    </button>
+                </div>
+
+                <div class="auth-footer">
+                    <p>Belum punya akun? <a href="register.html">Daftar sekarang</a></p>
+                </div>
+            </div>
+
+            <div class="auth-image">
+                <div class="image-content">
+                    <h3>🎬</h3>
+                    <h2>Nikmati Film Favorit Anda</h2>
+                    <p>Dapatkan akses ke ribuan film dan pesan tiket dengan mudah</p>
+                    <ul class="benefits-list">
+                        <li>✓ Pemesanan tiket yang mudah dan cepat</li>
+                        <li>✓ Pilih kursi favorit Anda</li>
+                        <li>✓ Dapatkan promo dan diskon menarik</li>
+                        <li>✓ Riwayat pemesanan yang tersimpan</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CINEWIX</h3>
+                    <p>Platform pemesanan tiket bioskop terpercaya</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Menu</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="movies.html">Film</a></li>
+                        <li><a href="schedule.html">Jadwal</a></li>
+                        <li><a href="about.html">Tentang</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Kontak</h4>
+                    <p>Email: info@cinewix.com</p>
+                    <p>Telp: (021) 1234-5678</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Cinewix. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="public/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await updateNavigation('login');
+        });
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const formData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+            
+            showLoading('Masuk...');
+            
+            try {
+                const result = await api.login(formData);
+                
+                hideLoading();
+                
+                if (result.success) {
+                    showToast('Login berhasil!', 'success');
+                    userState.currentUser = result.user;
+                    userState.isAuthenticated = true;
+                    setTimeout(() => {
+                        window.location.href = 'movies.html';
+                    }, 1000);
+                } else if (result.needVerification) {
+                    showToast('Email belum diverifikasi', 'error');
+                    setTimeout(() => {
+                        window.location.href = `verify-email.html?userId=${result.userId}`;
+                    }, 1500);
+                } else {
+                    showToast(result.message || 'Login gagal', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Terjadi kesalahan. Silakan coba lagi.', 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        async function handleForgotPassword() {
+            const email = prompt('Masukkan email Anda:');
+            if (!email) return;
+
+            showLoading('Mengirim link reset password...');
+            
+            try {
+                const result = await api.forgotPassword(email);
+                
+                hideLoading();
+                
+                if (result.success) {
+                    showToast('Link reset password telah dikirim ke email Anda!', 'success');
+                } else {
+                    showToast(result.message || 'Gagal mengirim link', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast('Terjadi kesalahan', 'error');
+                console.error('Forgot password error:', error);
+            }
+        }
+
+        document.querySelector('.forgot-password')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleForgotPassword();
+        });
+    </script>
+</body>
+</html>
