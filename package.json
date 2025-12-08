@@ -11,6 +11,9 @@
   "keywords": ["cinema", "booking", "tickets", "movies"],
   "author": "Cinewix Team",
   "license": "ISC",
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

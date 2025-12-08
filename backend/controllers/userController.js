@@ -7,7 +7,12 @@ const fsPromises = fs.promises;
 
 const ensureUploadDir = (dirPath) => {
     if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
+        try {
+            fs.mkdirSync(dirPath, { recursive: true });
+        } catch (error) {
+            // In serverless environments, directories may not be writable
+            console.warn('Cannot create directory:', dirPath, error.message);
+        }
     }
 };
 
@@ -154,6 +159,15 @@ const deleteIfExists = async (filePath) => {
 };
 
 const updateProfilePhoto = async (req, res) => {
+    // Note: File uploads are not persistent in Vercel serverless
+    // Consider using cloud storage (Cloudinary, AWS S3, Vercel Blob) for production
+    if (process.env.VERCEL) {
+        return res.status(501).json({
+            success: false,
+            message: 'File upload tidak tersedia di deployment serverless. Gunakan cloud storage untuk production.'
+        });
+    }
+
     let targetPath;
     const tempPath = req.file?.path;
 

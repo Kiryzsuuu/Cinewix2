@@ -9,12 +9,29 @@ const router = express.Router();
 
 const ensureDir = (dirPath) => {
     if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
+        try {
+            fs.mkdirSync(dirPath, { recursive: true });
+        } catch (error) {
+            // In serverless, use /tmp directory
+            if (error.code === 'EROFS' || error.code === 'ENOENT') {
+                console.warn('Cannot create upload directory, using /tmp');
+            } else {
+                throw error;
+            }
+        }
     }
 };
 
-const tempDir = path.join(__dirname, '..', '..', 'uploads', 'tmp');
-ensureDir(tempDir);
+// Use /tmp in serverless environments (Vercel), uploads/tmp locally
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+const tempDir = isServerless 
+    ? path.join('/tmp', 'uploads') 
+    : path.join(__dirname, '..', '..', 'uploads', 'tmp');
+
+// Only try to create directory if not in serverless (will be created on demand)
+if (!isServerless) {
+    ensureDir(tempDir);
+}
 
 const storage = multer.diskStorage({
     destination: (_req, _file, cb) => {

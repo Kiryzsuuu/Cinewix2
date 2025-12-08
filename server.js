@@ -62,8 +62,10 @@ async function connectDB() {
 }
 
 // Connect to database for local development
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-    connectDB();
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    connectDB().catch(err => {
+        console.error('Initial DB connection failed:', err.message);
+    });
 }
 
 // Middleware
