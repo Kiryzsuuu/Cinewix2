@@ -69,13 +69,17 @@ app.use(cookieParser());
 // Database connection middleware for serverless
 app.use(async (req, res, next) => {
     try {
+        if (!process.env.MONGODB_URI) {
+            throw new Error('MONGODB_URI not configured');
+        }
         await connectDB();
         next();
     } catch (error) {
         console.error('Database connection failed:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Database connection failed' 
+            message: 'Database connection failed',
+            error: error.message
         });
     }
 });
@@ -83,6 +87,16 @@ app.use(async (req, res, next) => {
 // Serve static files
 app.use(express.static(path.join(__dirname)));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        success: true, 
+        message: 'Server is running',
+        env: process.env.NODE_ENV,
+        mongoConnected: mongoose.connection.readyState === 1
+    });
+});
 
 // API Routes
 app.use('/api/auth', require('./backend/routes/auth'));
