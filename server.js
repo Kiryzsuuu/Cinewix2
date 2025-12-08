@@ -1,4 +1,8 @@
-require('dotenv').config();
+// Load environment variables (only for local development)
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config();
+}
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -12,10 +16,14 @@ let cachedDb = null;
 
 async function connectDB() {
     if (cachedDb) {
+        console.log('Using cached database connection');
         return cachedDb;
     }
     
     try {
+        console.log('Attempting to connect to MongoDB...');
+        console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
+        
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             serverSelectionTimeoutMS: 5000
         });
@@ -48,6 +56,7 @@ async function connectDB() {
         return conn;
     } catch (error) {
         console.error(`Database Error: ${error.message}`);
+        console.error('Full error:', error);
         throw error;
     }
 }
