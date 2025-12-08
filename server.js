@@ -3,12 +3,59 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const connectDB = require('./backend/config/database');
+const mongoose = require('mongoose');
 
 const app = express();
 
-// Connect to database
-connectDB();
+// Database connection with caching for serverless
+let cachedDb = null;
+
+async function connectDB() {
+    if (cachedDb) {
+        return cachedDb;
+    }
+    
+    try {
+        const conn = await mongoose.connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000
+        });
+        cachedDb = conn;
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        
+        // Create super admin if doesn't exist (only in non-serverless)
+        if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+            const User = require('./backend/models/User');
+            const bcrypt = require('bcryptjs');
+            
+            const superAdmin = await User.findOne({ email: process.env.SUPER_ADMIN_EMAIL });
+            
+            if (!superAdmin && process.env.SUPER_ADMIN_EMAIL && process.env.SUPER_ADMIN_PASSWORD) {
+                const hashedPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD, 10);
+                await User.create({
+                    firstName: 'Super',
+                    lastName: 'Admin',
+                    email: process.env.SUPER_ADMIN_EMAIL,
+                    password: hashedPassword,
+                    phone: '08123456789',
+                    role: 'superadmin',
+                    isVerified: true,
+                    isPermanent: true
+                });
+                console.log('Super Admin created successfully');
+            }
+        }
+        
+        return conn;
+    } catch (error) {
+        console.error(`Database Error: ${error.message}`);
+        throw error;
+    }
+}
+
+// Connect to database for local development
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    connectDB();
+}
 
 // Middleware
 app.use(cors({
@@ -18,6 +65,20 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Database connection middleware for serverless
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error('Database connection failed:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Database connection failed' 
+        });
+    }
+});
 
 // Serve static files
 app.use(express.static(path.join(__dirname)));
