@@ -55,8 +55,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`
+// Only start server if not in Vercel serverless environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`
 ╔════════════════════════════════════════╗
 ║                                        ║
 ║     🎬 CINEWIX SERVER RUNNING 🎬      ║
@@ -65,5 +67,9 @@ app.listen(PORT, () => {
 ║     Environment: ${process.env.NODE_ENV || 'development'}              ║
 ║                                        ║
 ╚════════════════════════════════════════╝
-    `);
-});
+        `);
+    });
+}
+
+// Export for Vercel
+module.exports = app;
