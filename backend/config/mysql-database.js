@@ -3,22 +3,27 @@ const { Sequelize } = require('sequelize');
 // Explicitly require mysql2
 const mysql2 = require('mysql2');
 
-// Create Sequelize instance
+// Create Sequelize instance with better error handling
 const sequelize = new Sequelize({
     dialect: 'mysql',
     dialectModule: mysql2,
     host: process.env.MYSQL_HOST || 'localhost',
-    port: process.env.MYSQL_PORT || 3311,
+    port: parseInt(process.env.MYSQL_PORT || '3306'),
     database: process.env.MYSQL_DATABASE || 'cinewix',
     username: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {
-        max: 5,
+        max: process.env.VERCEL ? 2 : 5,  // Reduce connection pool for serverless
         min: 0,
         acquire: 30000,
         idle: 10000
-    }
+    },
+    dialectOptions: process.env.MYSQL_SSL === 'true' ? {
+        ssl: {
+            rejectUnauthorized: true
+        }
+    } : {}
 });
 
 // Test connection

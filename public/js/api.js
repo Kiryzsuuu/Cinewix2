@@ -7,13 +7,24 @@ const API_URL = window.location.hostname === 'localhost'
 const api = {
     // Auth endpoints
     async register(data) {
-        const response = await fetch(`${API_URL}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-            credentials: 'include'
-        });
-        return response.json();
+        try {
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            
+            return response.json();
+        } catch (error) {
+            console.error('Register API error:', error);
+            throw error;
+        }
     },
 
     async verifyEmail(data) {
@@ -37,13 +48,24 @@ const api = {
     },
 
     async login(data) {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-            credentials: 'include'
-        });
-        return response.json();
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            
+            return response.json();
+        } catch (error) {
+            console.error('Login API error:', error);
+            throw error;
+        }
     },
 
     async logout() {
@@ -111,10 +133,25 @@ const api = {
     },
 
     async getCurrentUser() {
-        const response = await fetch(`${API_URL}/auth/me`, {
-            credentials: 'include'
-        });
-        return response.json();
+        try {
+            const response = await fetch(`${API_URL}/auth/me`, {
+                credentials: 'include'
+            });
+            
+            // If unauthorized, return null instead of throwing
+            if (response.status === 401) {
+                return { success: false, user: null };
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.json();
+        } catch (error) {
+            console.error('Get current user error:', error);
+            return { success: false, user: null };
+        }
     },
 
     async forgotPassword(email) {

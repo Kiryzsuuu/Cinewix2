@@ -5,7 +5,12 @@ const { Op } = require('sequelize');
 // Get all movies
 const getAllMovies = async (req, res) => {
     try {
-        await connectDB();
+        // In Vercel, connection is already established in mysql-database.js
+        // Only call connectDB in development
+        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+            await connectDB();
+        }
+        
         const movies = await Movie.findAll({
             where: { isActive: true },
             order: [['releaseDate', 'DESC']],
@@ -22,7 +27,8 @@ const getAllMovies = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Terjadi kesalahan saat mengambil data film',
-            error: error.message 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };

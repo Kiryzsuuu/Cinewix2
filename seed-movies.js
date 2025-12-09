@@ -1,24 +1,20 @@
-const express = require('express');
-const router = express.Router();
-const { Movie } = require('../models/mysql-models');
-const { connectDB } = require('../config/mysql-database');
+require('dotenv').config();
+const { Movie } = require('./backend/models/mysql-models');
+const { connectDB } = require('./backend/config/mysql-database');
 
-// GET /api/seed - Seed database with initial data
-router.get('/', async (req, res) => {
+async function seedMovies() {
     try {
         await connectDB();
-        // Check if movies already exist
-        const existingMovies = await Movie.count();
-        
-        if (existingMovies > 0) {
-            return res.json({
-                success: true,
-                message: 'Database sudah berisi data',
-                moviesCount: existingMovies
-            });
+        console.log('Connected to database');
+
+        // Check existing movies
+        const count = await Movie.count();
+        if (count > 0) {
+            console.log(`Database already has ${count} movies`);
+            return;
         }
 
-        // Seed movies - matching the MySQL model schema
+        // Movies data
         const movies = [
             {
                 title: "Top Gun: Maverick",
@@ -67,22 +63,22 @@ router.get('/', async (req, res) => {
             }
         ];
 
-        await Movie.bulkCreate(movies);
+        // Insert one by one to see which one fails
+        for (const movieData of movies) {
+            console.log(`\nInserting: ${movieData.title}`);
+            console.log('Data:', JSON.stringify(movieData, null, 2));
+            
+            const movie = await Movie.create(movieData);
+            console.log(`✅ Created: ${movie.title}`);
+        }
 
-        res.json({
-            success: true,
-            message: 'Database berhasil di-seed',
-            moviesCreated: movies.length
-        });
-
+        console.log('\n✅ All movies seeded successfully!');
+        process.exit(0);
     } catch (error) {
         console.error('Seed error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Gagal seed database',
-            error: error.message
-        });
+        console.error('Error details:', error.message);
+        process.exit(1);
     }
-});
+}
 
-module.exports = router;
+seedMovies();

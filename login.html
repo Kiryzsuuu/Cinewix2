@@ -181,8 +181,13 @@
                 }
             } catch (error) {
                 hideLoading();
-                showToast('Terjadi kesalahan. Silakan coba lagi.', 'error');
                 console.error('Login error:', error);
+                // Show more specific error message
+                if (error.message) {
+                    showToast(`Terjadi kesalahan: ${error.message}`, 'error');
+                } else {
+                    showToast('Terjadi kesalahan saat login. Pastikan server berjalan dan coba lagi.', 'error');
+                }
             }
         }
 
