@@ -112,6 +112,19 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Explicit routes for static files
+app.get('/style.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'style.css'));
+});
+
+app.get('/public/js/api.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'js', 'api.js'));
+});
+
+app.get('/public/css/style.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'css', 'style.css'));
+});
+
 // API Routes
 app.use('/api/auth', require('./backend/routes/auth'));
 app.use('/api/movies', require('./backend/routes/movies'));
