@@ -5,6 +5,7 @@ const {
     verifyEmail,
     resendVerificationCode,
     login,
+    verifyLoginOtp,
     forgotPassword,
     resetPassword,
     getCurrentUser,
@@ -16,6 +17,7 @@ router.post('/register', register);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerificationCode);
 router.post('/login', login);
+router.post('/verify-login-otp', verifyLoginOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.get('/me', authMiddleware, getCurrentUser);

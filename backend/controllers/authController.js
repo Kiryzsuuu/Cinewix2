@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { generateVerificationCode, sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService');
+const { generateVerificationCode, generateOTP, sendWelcomeEmail, sendPasswordResetEmail, sendLoginOTP } = require('../utils/emailService');
 
 // Register user
 const register = async (req, res) => {
@@ -176,7 +176,7 @@ const resendVerificationCode = async (req, res) => {
     }
 };
 
-// Login
+// Login - Step 1: Send OTP
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -209,6 +209,67 @@ const login = async (req, res) => {
             });
         }
 
+        // Generate OTP
+        const otpCode = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        user.loginOtpCode = otpCode;
+        user.loginOtpExpires = otpExpires;
+        await user.save();
+
+        // Send OTP email
+        await sendLoginOTP(email, user.firstName, otpCode);
+
+        res.json({
+            success: true,
+            message: 'Kode OTP telah dikirim ke email Anda',
+            userId: user._id,
+            requireOtp: true
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Terjadi kesalahan saat login',
+            error: error.message 
+        });
+    }
+};
+
+// Login - Step 2: Verify OTP
+const verifyLoginOtp = async (req, res) => {
+    try {
+        const { userId, otpCode } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'User tidak ditemukan' 
+            });
+        }
+
+        // Check if OTP expired
+        if (user.loginOtpExpires < Date.now()) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Kode OTP sudah kadaluarsa' 
+            });
+        }
+
+        // Check if OTP matches
+        if (user.loginOtpCode !== otpCode) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Kode OTP salah' 
+            });
+        }
+
+        // Clear OTP
+        user.loginOtpCode = undefined;
+        user.loginOtpExpires = undefined;
+        await user.save();
+
         // Generate JWT token
         const token = jwt.sign(
             { id: user._id, email: user.email }, 
@@ -234,16 +295,16 @@ const login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
+        console.error('Verify OTP error:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Terjadi kesalahan saat login',
+            message: 'Terjadi kesalahan saat verifikasi OTP',
             error: error.message 
         });
     }
 };
 
-// Forgot password
+// Forgot password - Send OTP
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -256,23 +317,21 @@ const forgotPassword = async (req, res) => {
             });
         }
 
-        // Generate reset token
-        const resetToken = jwt.sign(
-            { id: user._id }, 
-            process.env.JWT_SECRET, 
-            { expiresIn: '1h' }
-        );
+        // Generate OTP
+        const resetToken = generateOTP();
+        const tokenExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
         user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        user.resetPasswordExpires = tokenExpires;
         await user.save();
 
-        // Send email
+        // Send email with OTP
         await sendPasswordResetEmail(email, user.firstName, resetToken);
 
         res.json({
             success: true,
-            message: 'Link reset password telah dikirim ke email Anda'
+            message: 'Kode OTP reset password telah dikirim ke email Anda',
+            userId: user._id
         });
     } catch (error) {
         console.error('Forgot password error:', error);
@@ -284,26 +343,32 @@ const forgotPassword = async (req, res) => {
     }
 };
 
-// Reset password
+// Reset password with OTP
 const resetPassword = async (req, res) => {
     try {
-        const { token, newPassword } = req.body;
+        const { userId, otpCode, newPassword } = req.body;
 
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id);
-
-        if (!user || user.resetPasswordToken !== token) {
-            return res.status(400).json({ 
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ 
                 success: false, 
-                message: 'Token tidak valid atau sudah kadaluarsa' 
+                message: 'User tidak ditemukan' 
             });
         }
 
+        // Check if OTP expired
         if (user.resetPasswordExpires < Date.now()) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Token sudah kadaluarsa' 
+                message: 'Kode OTP sudah kadaluarsa' 
+            });
+        }
+
+        // Check if OTP matches
+        if (user.resetPasswordToken !== otpCode) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Kode OTP salah' 
             });
         }
 
@@ -369,6 +434,7 @@ module.exports = {
     verifyEmail,
     resendVerificationCode,
     login,
+    verifyLoginOtp,
     forgotPassword,
     resetPassword,
     getCurrentUser,

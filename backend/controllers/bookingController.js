@@ -1,7 +1,7 @@
 const Booking = require('../models/Booking');
 const Transaction = require('../models/Transaction');
 const Movie = require('../models/Movie');
-const { sendBookingConfirmation } = require('../utils/emailService');
+const { sendBookingConfirmation, sendBookingReceipt } = require('../utils/emailService');
 
 // Generate booking code
 const generateBookingCode = () => {
@@ -62,27 +62,21 @@ const createBooking = async (req, res) => {
             transactionId
         });
 
-        // Send confirmation email
-        const formattedDate = new Date(showtime.date).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-
-        await sendBookingConfirmation(req.user.email, req.user.firstName, {
-            bookingCode,
-            movieTitle: movie.title,
-            date: formattedDate,
-            time: showtime.time,
-            studio: showtime.studio,
+        // Send receipt email with barcode
+        await sendBookingReceipt(req.user.email, req.user.firstName, {
+            bookingId: bookingCode,
+            movie: {
+                title: movie.title
+            },
             seats: seats,
-            totalPrice
+            showtime: showtime.date,
+            totalPrice,
+            paymentMethod
         });
 
         res.status(201).json({
             success: true,
-            message: 'Booking berhasil! Detail pesanan telah dikirim ke email Anda.',
+            message: 'Booking berhasil! E-tiket dengan barcode telah dikirim ke email Anda.',
             booking: {
                 id: booking._id,
                 bookingCode,

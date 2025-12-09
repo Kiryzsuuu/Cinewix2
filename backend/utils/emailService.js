@@ -1,4 +1,6 @@
 const nodemailer = require('nodemailer');
+const otpGenerator = require('otp-generator');
+const bwipjs = require('bwip-js');
 
 // Create transporter
 const transporter = nodemailer.createTransport({
@@ -14,6 +16,34 @@ const transporter = nodemailer.createTransport({
 // Generate 6-digit verification code
 const generateVerificationCode = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Generate 6-digit OTP
+const generateOTP = () => {
+    return otpGenerator.generate(6, { 
+        digits: true, 
+        lowerCaseAlphabets: false, 
+        upperCaseAlphabets: false, 
+        specialChars: false 
+    });
+};
+
+// Generate barcode as base64 image
+const generateBarcode = async (data) => {
+    try {
+        const png = await bwipjs.toBuffer({
+            bcid: 'code128',       // Barcode type
+            text: data,            // Text to encode
+            scale: 3,              // 3x scaling factor
+            height: 10,            // Bar height, in millimeters
+            includetext: true,     // Show human-readable text
+            textxalign: 'center',  // Always good to set this
+        });
+        return `data:image/png;base64,${png.toString('base64')}`;
+    } catch (err) {
+        console.error('Barcode generation error:', err);
+        return null;
+    }
 };
 
 // Send welcome email with verification code
@@ -253,9 +283,172 @@ const sendBookingConfirmation = async (email, firstName, bookingDetails) => {
     await transporter.sendMail(mailOptions);
 };
 
+// Send OTP for login
+const sendLoginOTP = async (email, firstName, otpCode) => {
+    const mailOptions = {
+        from: `"Cinewix" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Kode OTP Login Anda - Cinewix',
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #C9B59C, #D9CFC7); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .code-box { background: white; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px; border: 2px dashed #C9B59C; }
+                    .code { font-size: 32px; font-weight: bold; color: #C9B59C; letter-spacing: 5px; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="color: white; margin: 0;">CINEWIX</h1>
+                        <p style="color: white; margin: 10px 0 0 0;">Kode OTP Login</p>
+                    </div>
+                    <div class="content">
+                        <h2>Halo ${firstName}!</h2>
+                        <p>Gunakan kode OTP berikut untuk login ke akun Anda:</p>
+                        
+                        <div class="code-box">
+                            <div class="code">${otpCode}</div>
+                        </div>
+                        
+                        <p><strong>Kode ini akan kedaluwarsa dalam 10 menit.</strong></p>
+                        <p>Jika Anda tidak melakukan permintaan login, abaikan email ini.</p>
+                        
+                        <div class="footer">
+                            <p>Email ini dikirim otomatis, mohon tidak membalas email ini.</p>
+                            <p>&copy; 2024 Cinewix. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `
+    };
+
+    await transporter.sendMail(mailOptions);
+};
+
+// Send booking receipt with barcode
+const sendBookingReceipt = async (email, firstName, bookingData) => {
+    const { bookingId, movie, seats, showtime, totalPrice, paymentMethod } = bookingData;
+    
+    // Generate barcode for booking ID
+    const barcodeImage = await generateBarcode(bookingId);
+    
+    const mailOptions = {
+        from: `"Cinewix" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: `E-Tiket Booking Anda - ${movie.title}`,
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #C9B59C, #D9CFC7); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .ticket-box { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border: 2px solid #C9B59C; }
+                    .ticket-info { display: table; width: 100%; margin: 10px 0; }
+                    .ticket-row { display: table-row; }
+                    .ticket-label { display: table-cell; font-weight: bold; padding: 8px 0; width: 40%; }
+                    .ticket-value { display: table-cell; padding: 8px 0; }
+                    .barcode { text-align: center; margin: 20px 0; padding: 20px; background: white; border-radius: 8px; }
+                    .barcode img { max-width: 100%; height: auto; }
+                    .total-price { font-size: 24px; font-weight: bold; color: #C9B59C; text-align: center; margin: 20px 0; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                    .warning { background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin: 20px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="color: white; margin: 0;">CINEWIX</h1>
+                        <p style="color: white; margin: 10px 0 0 0;">E-Tiket Anda</p>
+                    </div>
+                    <div class="content">
+                        <h2>Terima kasih, ${firstName}!</h2>
+                        <p>Booking Anda telah berhasil dikonfirmasi. Berikut detail tiket Anda:</p>
+                        
+                        <div class="ticket-box">
+                            <h3 style="margin-top: 0; color: #C9B59C;">Detail Booking</h3>
+                            <div class="ticket-info">
+                                <div class="ticket-row">
+                                    <div class="ticket-label">Booking ID:</div>
+                                    <div class="ticket-value">${bookingId}</div>
+                                </div>
+                                <div class="ticket-row">
+                                    <div class="ticket-label">Film:</div>
+                                    <div class="ticket-value">${movie.title}</div>
+                                </div>
+                                <div class="ticket-row">
+                                    <div class="ticket-label">Tanggal & Waktu:</div>
+                                    <div class="ticket-value">${new Date(showtime).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</div>
+                                </div>
+                                <div class="ticket-row">
+                                    <div class="ticket-label">Kursi:</div>
+                                    <div class="ticket-value">${seats.join(', ')}</div>
+                                </div>
+                                <div class="ticket-row">
+                                    <div class="ticket-label">Jumlah Tiket:</div>
+                                    <div class="ticket-value">${seats.length} tiket</div>
+                                </div>
+                                <div class="ticket-row">
+                                    <div class="ticket-label">Metode Pembayaran:</div>
+                                    <div class="ticket-value">${paymentMethod}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="total-price">
+                                Total: Rp ${totalPrice.toLocaleString('id-ID')}
+                            </div>
+                        </div>
+                        
+                        <div class="barcode">
+                            <h3 style="margin-top: 0;">Barcode Tiket</h3>
+                            <p style="font-size: 12px; color: #666;">Tunjukkan barcode ini di bioskop</p>
+                            ${barcodeImage ? `<img src="${barcodeImage}" alt="Barcode">` : '<p>Barcode tidak dapat di-generate</p>'}
+                        </div>
+                        
+                        <div class="warning">
+                            <strong>Penting:</strong>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                <li>Simpan email ini sebagai bukti booking Anda</li>
+                                <li>Tunjukkan barcode di atas saat memasuki bioskop</li>
+                                <li>Datang 15 menit sebelum waktu tayang</li>
+                                <li>Tiket tidak dapat dikembalikan atau ditukar</li>
+                            </ul>
+                        </div>
+                        
+                        <p style="text-align: center; margin-top: 30px;">Selamat menikmati film Anda!</p>
+                        
+                        <div class="footer">
+                            <p>Email ini dikirim otomatis, mohon tidak membalas email ini.</p>
+                            <p>&copy; 2024 Cinewix. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `
+    };
+
+    await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
     generateVerificationCode,
+    generateOTP,
+    generateBarcode,
     sendWelcomeEmail,
     sendPasswordResetEmail,
-    sendBookingConfirmation
+    sendBookingConfirmation,
+    sendLoginOTP,
+    sendBookingReceipt
 };
