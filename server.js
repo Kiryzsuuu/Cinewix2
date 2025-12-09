@@ -145,6 +145,42 @@ app.get('/register.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'register.html'));
 });
 
+app.get('/movies.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'movies.html'));
+});
+
+app.get('/schedule.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'schedule.html'));
+});
+
+app.get('/about.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'about.html'));
+});
+
+app.get('/booking.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'booking.html'));
+});
+
+app.get('/my-bookings.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'my-bookings.html'));
+});
+
+app.get('/my-profile.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'my-profile.html'));
+});
+
+app.get('/admin-dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+app.get('/verify-email.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'verify-email.html'));
+});
+
+app.get('/movie-detail.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'movie-detail.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
