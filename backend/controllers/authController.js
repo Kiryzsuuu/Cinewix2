@@ -35,8 +35,13 @@ const register = async (req, res) => {
             verificationExpires
         });
 
-        // Send welcome email
-        await sendWelcomeEmail(email, firstName, verificationCode);
+        // Send welcome email (non-blocking)
+        try {
+            await sendWelcomeEmail(email, firstName, verificationCode);
+        } catch (emailError) {
+            console.error('Email sending failed:', emailError);
+            // Continue anyway, user is created
+        }
 
         res.status(201).json({
             success: true,

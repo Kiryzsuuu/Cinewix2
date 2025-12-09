@@ -48,10 +48,17 @@ const generateBarcode = async (data) => {
 
 // Send welcome email with verification code
 const sendWelcomeEmail = async (email, firstName, verificationCode) => {
-    const mailOptions = {
-        from: `"Cinewix" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Selamat Datang di Cinewix - Verifikasi Akun Anda',
+    try {
+        // Check if email config exists
+        if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
+            console.warn('Email service not configured, skipping email send');
+            return;
+        }
+
+        const mailOptions = {
+            from: `"Cinewix" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Selamat Datang di Cinewix - Verifikasi Akun Anda',
         html: `
             <!DOCTYPE html>
             <html>
@@ -108,6 +115,10 @@ const sendWelcomeEmail = async (email, firstName, verificationCode) => {
     };
 
     await transporter.sendMail(mailOptions);
+    } catch (error) {
+        console.error('Failed to send welcome email:', error.message);
+        throw error;
+    }
 };
 
 // Send password reset email
