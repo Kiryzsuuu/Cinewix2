@@ -74,7 +74,7 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
 
 // Middleware
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5000',
+    origin: process.env.VERCEL ? true : (process.env.CLIENT_URL || 'http://localhost:5000'),
     credentials: true
 }));
 app.use(express.json());
