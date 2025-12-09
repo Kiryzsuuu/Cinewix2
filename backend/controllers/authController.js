@@ -6,11 +6,15 @@ const connectDB = require('../config/database');
 
 // Register user
 const register = async (req, res) => {
+    console.log('[REGISTER] Starting registration process');
     try {
         // Ensure database connection for serverless
+        console.log('[REGISTER] Connecting to database...');
         await connectDB();
+        console.log('[REGISTER] Database connected');
         
         const { firstName, lastName, email, password, phone } = req.body;
+        console.log('[REGISTER] Request body:', { firstName, lastName, email, phone: phone ? 'provided' : 'missing' });
 
         // Validate required fields
         if (!firstName || !lastName || !email || !password || !phone) {
