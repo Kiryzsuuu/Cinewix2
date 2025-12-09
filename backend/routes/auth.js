@@ -6,6 +6,7 @@ const {
     resendVerificationCode,
     login,
     verifyLoginOtp,
+    resendLoginOtp,
     forgotPassword,
     resetPassword,
     getCurrentUser,
@@ -18,6 +19,7 @@ router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerificationCode);
 router.post('/login', login);
 router.post('/verify-login-otp', verifyLoginOtp);
+router.post('/resend-login-otp', resendLoginOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.get('/me', authMiddleware, getCurrentUser);

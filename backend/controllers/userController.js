@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const User = require('../models/User');
+const { User } = require('../models/mysql-models');
+const { connectDB } = require('../config/mysql-database');
 const { generateVerificationCode, sendWelcomeEmail } = require('../utils/emailService');
 
 const fsPromises = fs.promises;
@@ -18,7 +19,10 @@ const ensureUploadDir = (dirPath) => {
 
 const getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select('-password -verificationCode -verificationExpires -resetPasswordToken -resetPasswordExpires');
+        await connectDB();
+        const user = await User.findByPk(req.user.id, {
+            attributes: { exclude: ['password', 'verificationCode', 'verificationExpires', 'resetPasswordToken', 'resetPasswordExpires'] }
+        });
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -42,7 +46,8 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
     try {
-        const userId = req.user._id;
+        await connectDB();
+        const userId = req.user.id;
         const {
             firstName,
             lastName,
@@ -72,8 +77,8 @@ const updateProfile = async (req, res) => {
         if (email !== undefined) {
             const normalizedEmail = normalize(email)?.toLowerCase();
             if (normalizedEmail && normalizedEmail !== req.user.email) {
-                const existingUser = await User.findOne({ email: normalizedEmail });
-                if (existingUser && existingUser._id.toString() !== userId.toString()) {
+                const existingUser = await User.findOne({ where: { email: normalizedEmail } });
+                if (existingUser && existingUser.id !== userId) {
                     return res.status(400).json({
                         success: false,
                         message: 'Email sudah digunakan oleh akun lain'
@@ -90,7 +95,9 @@ const updateProfile = async (req, res) => {
         }
 
         if (!Object.keys(updateFields).length) {
-            const currentUser = await User.findById(userId).select('-password -verificationCode -verificationExpires -resetPasswordToken -resetPasswordExpires');
+            const currentUser = await User.findByPk(userId, {
+                attributes: { exclude: ['password', 'verificationCode', 'verificationExpires', 'resetPasswordToken', 'resetPasswordExpires'] }
+            });
             return res.json({
                 success: true,
                 user: currentUser,
@@ -98,18 +105,18 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            updateFields,
-            { new: true, runValidators: true, context: 'query' }
-        ).select('-password -verificationCode -verificationExpires -resetPasswordToken -resetPasswordExpires');
+        const [updateCount] = await User.update(updateFields, { where: { id: userId } });
 
-        if (!updatedUser) {
+        if (!updateCount) {
             return res.status(404).json({
                 success: false,
                 message: 'User tidak ditemukan'
             });
         }
+
+        const updatedUser = await User.findByPk(userId, {
+            attributes: { exclude: ['password', 'verificationCode', 'verificationExpires', 'resetPasswordToken', 'resetPasswordExpires'] }
+        });
 
         if (emailChanged && verificationCode) {
             try {
@@ -123,7 +130,7 @@ const updateProfile = async (req, res) => {
             success: true,
             user: updatedUser,
             needVerification: emailChanged,
-            userId: updatedUser._id
+            userId: updatedUser.id
         });
     } catch (error) {
         console.error('Update profile error:', error);
@@ -179,10 +186,12 @@ const updateProfilePhoto = async (req, res) => {
             });
         }
 
+        await connectDB();
+
         const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
         ensureUploadDir(uploadDir);
 
-        const user = await User.findById(req.user._id);
+        const user = await User.findByPk(req.user.id);
         if (!user) {
             await deleteIfExists(req.file.path);
             return res.status(404).json({
@@ -196,7 +205,7 @@ const updateProfilePhoto = async (req, res) => {
             await deleteIfExists(existingPath);
         }
 
-        const filename = `${req.user._id}-${Date.now()}${path.extname(req.file.originalname)}`;
+        const filename = `${req.user.id}-${Date.now()}${path.extname(req.file.originalname)}`;
         targetPath = path.join(uploadDir, filename);
 
         await moveFileSafely(tempPath, targetPath);

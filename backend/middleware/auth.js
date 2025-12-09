@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models/mysql-models');
 
 // Verify JWT token
 const authMiddleware = async (req, res, next) => {
@@ -14,7 +14,7 @@ const authMiddleware = async (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id).select('-password -verificationCode -verificationExpires -resetPasswordToken -resetPasswordExpires');
+        const user = await User.findByPk(decoded.id);
         
         if (!user) {
             return res.status(401).json({ 
@@ -23,7 +23,15 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
-        req.user = user;
+        req.user = {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            phone: user.phone,
+            profilePhotoUrl: user.profilePhotoUrl
+        };
         next();
     } catch (error) {
         res.status(401).json({ 

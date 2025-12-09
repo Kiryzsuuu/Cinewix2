@@ -7,63 +7,9 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const mongoose = require('mongoose');
+const { connectDB } = require('./backend/config/mysql-database');
 
 const app = express();
-
-// Database connection with caching for serverless
-let cachedDb = null;
-
-async function connectDB() {
-    if (cachedDb) {
-        console.log('Using cached database connection');
-        return cachedDb;
-    }
-    
-    try {
-        console.log('Attempting to connect to MongoDB...');
-        console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
-        
-        const conn = await mongoose.connect(process.env.MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000
-        });
-        cachedDb = conn;
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
-        
-        // Auto-seed database if empty
-        const { autoSeedDatabase } = require('./backend/utils/autoSeed');
-        await autoSeedDatabase();
-        
-        // Create super admin if doesn't exist (only in non-serverless)
-        if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-            const User = require('./backend/models/User');
-            const bcrypt = require('bcryptjs');
-            
-            const superAdmin = await User.findOne({ email: process.env.SUPER_ADMIN_EMAIL });
-            
-            if (!superAdmin && process.env.SUPER_ADMIN_EMAIL && process.env.SUPER_ADMIN_PASSWORD) {
-                const hashedPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD, 10);
-                await User.create({
-                    firstName: 'Super',
-                    lastName: 'Admin',
-                    email: process.env.SUPER_ADMIN_EMAIL,
-                    password: hashedPassword,
-                    phone: '08123456789',
-                    role: 'superadmin',
-                    isVerified: true,
-                    isPermanent: true
-                });
-                console.log('Super Admin created successfully');
-            }
-        }
-        
-        return conn;
-    } catch (error) {
-        console.error(`Database Error: ${error.message}`);
-        console.error('Full error:', error);
-        throw error;
-    }
-}
 
 // Connect to database for local development
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
@@ -94,7 +40,7 @@ app.get('/api/health', (req, res) => {
         success: true, 
         message: 'Server is running',
         env: process.env.NODE_ENV,
-        mongoConnected: mongoose.connection.readyState === 1
+        mongoConnected: false
     });
 });
 

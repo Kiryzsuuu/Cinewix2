@@ -1,11 +1,16 @@
-const Movie = require('../models/Movie');
+const { Movie } = require('../models/mysql-models');
+const { connectDB } = require('../config/mysql-database');
+const { Op } = require('sequelize');
 
 // Get all movies
 const getAllMovies = async (req, res) => {
     try {
-        const movies = await Movie.find({ isActive: true })
-            .sort({ releaseDate: -1 })
-            .select('-reviews');
+        await connectDB();
+        const movies = await Movie.findAll({
+            where: { isActive: true },
+            order: [['releaseDate', 'DESC']],
+            attributes: { exclude: ['reviews'] }
+        });
         
         res.json({
             success: true,
@@ -25,7 +30,8 @@ const getAllMovies = async (req, res) => {
 // Get movie by ID
 const getMovieById = async (req, res) => {
     try {
-        const movie = await Movie.findById(req.params.id);
+        await connectDB();
+        const movie = await Movie.findByPk(req.params.id);
         
         if (!movie) {
             return res.status(404).json({ 
@@ -75,11 +81,8 @@ const createMovie = async (req, res) => {
 // Update movie (admin only)
 const updateMovie = async (req, res) => {
     try {
-        const movie = await Movie.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
+        await connectDB();
+        const movie = await Movie.findByPk(req.params.id);
         
         if (!movie) {
             return res.status(404).json({ 
@@ -87,6 +90,8 @@ const updateMovie = async (req, res) => {
                 message: 'Film tidak ditemukan' 
             });
         }
+        
+        await movie.update(req.body);
 
         res.json({
             success: true,
@@ -106,11 +111,8 @@ const updateMovie = async (req, res) => {
 // Delete movie (admin only)
 const deleteMovie = async (req, res) => {
     try {
-        const movie = await Movie.findByIdAndUpdate(
-            req.params.id,
-            { isActive: false },
-            { new: true }
-        );
+        await connectDB();
+        const movie = await Movie.findByPk(req.params.id);
         
         if (!movie) {
             return res.status(404).json({ 
@@ -118,6 +120,8 @@ const deleteMovie = async (req, res) => {
                 message: 'Film tidak ditemukan' 
             });
         }
+        
+        await movie.destroy();
 
         res.json({
             success: true,

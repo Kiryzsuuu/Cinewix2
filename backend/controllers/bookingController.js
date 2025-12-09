@@ -1,6 +1,5 @@
-const Booking = require('../models/Booking');
-const Transaction = require('../models/Transaction');
-const Movie = require('../models/Movie');
+const { Booking, Transaction, Movie, User } = require('../models/mysql-models');
+const { connectDB } = require('../config/mysql-database');
 const { sendBookingConfirmation, sendBookingReceipt } = require('../utils/emailService');
 
 // Generate booking code
@@ -23,10 +22,11 @@ const generateTransactionId = () => {
 // Create booking
 const createBooking = async (req, res) => {
     try {
+        await connectDB();
         const { movieId, showtime, seats, paymentMethod } = req.body;
         
         // Get movie details
-        const movie = await Movie.findById(movieId);
+        const movie = await Movie.findByPk(movieId);
         if (!movie) {
             return res.status(404).json({ 
                 success: false, 
@@ -43,8 +43,8 @@ const createBooking = async (req, res) => {
 
         // Create booking
         const booking = await Booking.create({
-            user: req.user._id,
-            movie: movieId,
+            userId: req.user.id,
+            movieId: movieId,
             showtime,
             seats: seats.map(seat => ({ seatNumber: seat, price: pricePerSeat })),
             totalPrice,
@@ -55,8 +55,8 @@ const createBooking = async (req, res) => {
         // Create transaction
         const transactionId = generateTransactionId();
         await Transaction.create({
-            booking: booking._id,
-            user: req.user._id,
+            bookingId: booking.id,
+            userId: req.user.id,
             amount: totalPrice,
             paymentMethod,
             transactionId
@@ -78,7 +78,7 @@ const createBooking = async (req, res) => {
             success: true,
             message: 'Booking berhasil! E-tiket dengan barcode telah dikirim ke email Anda.',
             booking: {
-                id: booking._id,
+                id: booking.id,
                 bookingCode,
                 movie: movie.title,
                 showtime,
@@ -99,9 +99,12 @@ const createBooking = async (req, res) => {
 // Get user bookings
 const getUserBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find({ user: req.user._id })
-            .populate('movie')
-            .sort({ createdAt: -1 });
+        await connectDB();
+        const bookings = await Booking.findAll({
+            where: { userId: req.user.id },
+            include: [{ model: Movie }],
+            order: [['createdAt', 'DESC']]
+        });
 
         res.json({
             success: true,
@@ -121,9 +124,13 @@ const getUserBookings = async (req, res) => {
 // Get booking by ID
 const getBookingById = async (req, res) => {
     try {
-        const booking = await Booking.findById(req.params.id)
-            .populate('movie')
-            .populate('user', 'firstName lastName email');
+        await connectDB();
+        const booking = await Booking.findByPk(req.params.id, {
+            include: [
+                { model: Movie },
+                { model: User, attributes: ['firstName', 'lastName', 'email'] }
+            ]
+        });
 
         if (!booking) {
             return res.status(404).json({ 
@@ -133,7 +140,7 @@ const getBookingById = async (req, res) => {
         }
 
         // Check if user owns this booking or is admin
-        if (booking.user._id.toString() !== req.user._id.toString() && 
+        if (booking.userId !== req.user.id && 
             req.user.role !== 'admin' && req.user.role !== 'superadmin') {
             return res.status(403).json({ 
                 success: false, 
@@ -158,7 +165,8 @@ const getBookingById = async (req, res) => {
 // Cancel booking
 const cancelBooking = async (req, res) => {
     try {
-        const booking = await Booking.findById(req.params.id);
+        await connectDB();
+        const booking = await Booking.findByPk(req.params.id);
 
         if (!booking) {
             return res.status(404).json({ 
@@ -168,7 +176,7 @@ const cancelBooking = async (req, res) => {
         }
 
         // Check if user owns this booking
-        if (booking.user.toString() !== req.user._id.toString()) {
+        if (booking.userId !== req.user.id) {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Akses ditolak' 

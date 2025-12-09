@@ -1,14 +1,15 @@
-const User = require('../models/User');
+// Use MySQL models instead of MongoDB
+const { User } = require('../models/mysql-models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { generateVerificationCode, generateOTP, sendWelcomeEmail, sendPasswordResetEmail, sendLoginOTP } = require('../utils/emailService');
-const connectDB = require('../config/database');
+const { connectDB } = require('../config/mysql-database');
 
 // Register user
 const register = async (req, res) => {
     console.log('[REGISTER] Starting registration process');
     try {
-        // Ensure database connection for serverless
+        // Ensure database connection
         console.log('[REGISTER] Connecting to database...');
         await connectDB();
         console.log('[REGISTER] Database connected');
@@ -31,8 +32,8 @@ const register = async (req, res) => {
             });
         }
 
-        // Check if user exists
-        const existingUser = await User.findOne({ email });
+        // Check if user exists (Sequelize syntax)
+        const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
             return res.status(400).json({ 
                 success: false, 
@@ -69,7 +70,7 @@ const register = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Registrasi berhasil! Kode verifikasi telah dikirim ke email Anda.',
-            userId: user._id
+            userId: user.id
         });
     } catch (error) {
         console.error('Register error:', error);
@@ -87,8 +88,15 @@ const verifyEmail = async (req, res) => {
     try {
         await connectDB();
         const { userId, code } = req.body;
+        
+        console.log('[VERIFY] Received userId:', userId, 'Type:', typeof userId, 'Code:', code);
+        
+        // Convert userId to integer if it's a string
+        const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+        console.log('[VERIFY] Converted userId:', userIdInt, 'Type:', typeof userIdInt);
 
-        const user = await User.findById(userId);
+        const user = await User.findByPk(userIdInt);
+        console.log('[VERIFY] User found:', user ? `Yes (${user.email})` : 'No');
         
         if (!user) {
             return res.status(404).json({ 
@@ -135,6 +143,8 @@ const verifyEmail = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
+            sameSite: 'lax',
+            secure: false,
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
@@ -143,7 +153,7 @@ const verifyEmail = async (req, res) => {
             message: 'Email berhasil diverifikasi',
             token,
             user: {
-                id: user._id,
+                id: user.id,
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email,
@@ -165,8 +175,23 @@ const resendVerificationCode = async (req, res) => {
     try {
         await connectDB();
         const { userId } = req.body;
+        
+        console.log('[RESEND] Received userId:', userId, 'Type:', typeof userId);
 
-        const user = await User.findById(userId);
+        if (!userId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'User ID tidak ditemukan dalam request' 
+            });
+        }
+        
+        // Convert userId to integer if it's a string
+        const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+        console.log('[RESEND] Converted userId:', userIdInt, 'Type:', typeof userIdInt);
+
+        const user = await User.findByPk(userIdInt);
+        
+        console.log('[RESEND] User found:', user ? `Yes (${user.email})` : 'No');
         
         if (!user) {
             return res.status(404).json({ 
@@ -214,7 +239,7 @@ const login = async (req, res) => {
         const { email, password } = req.body;
 
         // Find user
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ where: { email } });
         if (!user) {
             return res.status(401).json({ 
                 success: false, 
@@ -227,7 +252,7 @@ const login = async (req, res) => {
             return res.status(401).json({ 
                 success: false, 
                 message: 'Email belum diverifikasi. Silakan verifikasi email Anda terlebih dahulu.',
-                userId: user._id,
+                userId: user.id,
                 needVerification: true
             });
         }
@@ -249,13 +274,18 @@ const login = async (req, res) => {
         user.loginOtpExpires = otpExpires;
         await user.save();
 
+        // Dev log: show OTP in server logs for local testing
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`[LOGIN] OTP for ${email}:`, otpCode);
+        }
+
         // Send OTP email
         await sendLoginOTP(email, user.firstName, otpCode);
 
         res.json({
             success: true,
             message: 'Kode OTP telah dikirim ke email Anda',
-            userId: user._id,
+            userId: user.id,
             requireOtp: true
         });
     } catch (error) {
@@ -273,13 +303,26 @@ const verifyLoginOtp = async (req, res) => {
     try {
         await connectDB();
         const { userId, otpCode } = req.body;
+        console.log('[LOGIN OTP] Received userId:', userId, 'Type:', typeof userId, 'OTP:', otpCode);
 
-        const user = await User.findById(userId);
+        // Normalize userId to integer if present
+        let user = null;
+        if (userId !== undefined && userId !== null) {
+            const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+            if (userIdInt && !Number.isNaN(userIdInt)) {
+                user = await User.findByPk(userIdInt);
+            }
+        }
+
+        // Fallback: find by OTP code if userId is missing or lookup failed
         if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User tidak ditemukan' 
-            });
+            console.log('[LOGIN OTP] Fallback: searching by OTP code');
+            user = await User.findOne({ where: { loginOtpCode: otpCode } });
+        }
+
+        console.log('[LOGIN OTP] User found:', user ? `Yes (${user.email})` : 'No');
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
         }
 
         // Check if OTP expired
@@ -299,19 +342,21 @@ const verifyLoginOtp = async (req, res) => {
         }
 
         // Clear OTP
-        user.loginOtpCode = undefined;
-        user.loginOtpExpires = undefined;
+        user.loginOtpCode = null;
+        user.loginOtpExpires = null;
         await user.save();
 
         // Generate JWT token
         const token = jwt.sign(
-            { id: user._id, email: user.email }, 
+            { id: user.id, email: user.email, role: user.role }, 
             process.env.JWT_SECRET, 
             { expiresIn: '7d' }
         );
 
         res.cookie('token', token, {
             httpOnly: true,
+            sameSite: 'lax',
+            secure: false,
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
@@ -320,11 +365,12 @@ const verifyLoginOtp = async (req, res) => {
             message: 'Login berhasil',
             token,
             user: {
-                id: user._id,
+                id: user.id,
                 firstName: user.firstName,
                 lastName: user.lastName,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                phone: user.phone
             }
         });
     } catch (error) {
@@ -337,13 +383,66 @@ const verifyLoginOtp = async (req, res) => {
     }
 };
 
+// Resend Login OTP
+const resendLoginOtp = async (req, res) => {
+    try {
+        await connectDB();
+        const { userId, email } = req.body;
+        console.log('[RESEND LOGIN OTP] Received userId:', userId, 'email:', email);
+
+        let user = null;
+        if (userId) {
+            const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+            if (userIdInt && !Number.isNaN(userIdInt)) {
+                user = await User.findByPk(userIdInt);
+            }
+        }
+
+        if (!user && email) {
+            user = await User.findOne({ where: { email } });
+        }
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+        }
+
+        if (!user.isVerified) {
+            return res.status(400).json({ success: false, message: 'Email belum diverifikasi' });
+        }
+
+        // Generate new OTP
+        const otpCode = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        user.loginOtpCode = otpCode;
+        user.loginOtpExpires = otpExpires;
+        await user.save();
+
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`[RESEND LOGIN OTP] OTP for ${user.email}:`, otpCode);
+        }
+
+        await sendLoginOTP(user.email, user.firstName, otpCode);
+
+        res.json({
+            success: true,
+            message: 'Kode OTP baru telah dikirim ke email Anda',
+            userId: user.id
+        });
+    } catch (error) {
+        console.error('Resend login OTP error:', error);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan saat mengirim ulang OTP', error: error.message });
+    }
+};
+
 // Forgot password - send OTP
+// Forgot password - send reset link
 const forgotPassword = async (req, res) => {
     try {
         await connectDB();
         const { email } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ where: { email } });
         if (!user) {
             return res.status(404).json({ 
                 success: false, 
@@ -351,21 +450,20 @@ const forgotPassword = async (req, res) => {
             });
         }
 
-        // Generate OTP
-        const resetToken = generateOTP();
-        const tokenExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        // Generate reset token (random string)
+        const resetToken = generateOTP() + Date.now().toString();
+        const tokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
         user.resetPasswordToken = resetToken;
         user.resetPasswordExpires = tokenExpires;
         await user.save();
 
-        // Send email with OTP
+        // Send email with reset link
         await sendPasswordResetEmail(email, user.firstName, resetToken);
 
         res.json({
             success: true,
-            message: 'Kode OTP reset password telah dikirim ke email Anda',
-            userId: user._id
+            message: 'Link reset password telah dikirim ke email Anda'
         });
     } catch (error) {
         console.error('Forgot password error:', error);
@@ -377,47 +475,58 @@ const forgotPassword = async (req, res) => {
     }
 };
 
-// Reset password with OTP
+// Reset password with token
 const resetPassword = async (req, res) => {
     try {
         await connectDB();
-        const { email, otp, newPassword } = req.body;
+        const { token, password } = req.body;
 
-        const user = await User.findById(userId);
+        console.log('[RESET PASSWORD] Received token:', token);
+
+        if (!token || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Token dan password harus diisi' 
+            });
+        }
+
+        // Find user by token
+        const user = await User.findOne({ 
+            where: { 
+                resetPasswordToken: token
+            } 
+        });
+
+        console.log('[RESET PASSWORD] User found:', user ? `Yes (${user.email})` : 'No');
+
         if (!user) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'User tidak ditemukan' 
+                message: 'Token reset password tidak valid' 
             });
         }
 
-        // Check if OTP expired
+        // Check if token expired
         if (user.resetPasswordExpires < Date.now()) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Kode OTP sudah kadaluarsa' 
-            });
-        }
-
-        // Check if OTP matches
-        if (user.resetPasswordToken !== otpCode) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Kode OTP salah' 
+                message: 'Token reset password sudah kadaluarsa. Silakan minta reset password ulang.' 
             });
         }
 
         // Hash new password
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
         
         user.password = hashedPassword;
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
         await user.save();
+
+        console.log('[RESET PASSWORD] Password updated for user:', user.email);
 
         res.json({
             success: true,
-            message: 'Password berhasil direset'
+            message: 'Password berhasil direset. Silakan login dengan password baru Anda.'
         });
     } catch (error) {
         console.error('Reset password error:', error);
@@ -468,8 +577,10 @@ module.exports = {
     register,
     verifyEmail,
     resendVerificationCode,
+    // New controller will be added below
     login,
     verifyLoginOtp,
+    resendLoginOtp,
     forgotPassword,
     resetPassword,
     getCurrentUser,

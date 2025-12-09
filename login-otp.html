@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifikasi Email - Cinewix</title>
+    <title>Verifikasi OTP Login - Cinewix</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,22 +22,20 @@
             <div class="nav-logo">
                 <span class="logo-text">CINEWIX</span>
             </div>
-            <ul class="nav-menu" id="navMenu">
-                <!-- Navigation items will be populated by JavaScript -->
-            </ul>
+            <ul class="nav-menu" id="navMenu"></ul>
         </div>
     </nav>
 
-    <!-- Verification Section -->
+    <!-- OTP Section -->
     <section class="auth-section">
         <div class="auth-container" style="grid-template-columns: 1fr;">
             <div class="auth-box">
                 <div class="auth-header">
-                    <h2>Verifikasi Email</h2>
-                    <p>Masukkan kode 6 digit yang telah dikirim ke email Anda</p>
+                    <h2>Verifikasi OTP Login</h2>
+                    <p>Masukkan kode 6 digit yang dikirim ke email Anda</p>
                 </div>
 
-                <form class="auth-form" id="verificationForm">
+                <form class="auth-form" id="otpForm">
                     <div class="verification-code-container">
                         <input type="text" class="code-input" maxlength="1" data-index="0">
                         <input type="text" class="code-input" maxlength="1" data-index="1">
@@ -62,37 +60,39 @@
     <script src="public/js/api.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            await updateNavigation('register');
+            await updateNavigation('login');
         });
 
-        const userId = new URLSearchParams(window.location.search).get('userId');
-        
-        console.log('URL:', window.location.href);
-        console.log('userId from URL:', userId);
-        
-        if (!userId) {
-            showToast('User ID tidak ditemukan. Silakan register ulang.', 'error');
-            setTimeout(() => {
-                window.location.href = 'register.html';
-            }, 2000);
-            return;
+        console.log('[LOGIN-OTP] URL:', window.location.href);
+        const userIdParam = new URLSearchParams(window.location.search).get('userId');
+        let userId = typeof userIdParam === 'string' ? parseInt(userIdParam, 10) : userIdParam;
+        if (!userId || Number.isNaN(userId)) {
+            // Fallback to sessionStorage
+            try {
+                const stored = sessionStorage.getItem('loginUserId');
+                if (stored) {
+                    userId = parseInt(stored, 10);
+                    console.log('[LOGIN-OTP] Fallback userId from sessionStorage:', stored, '→', userId);
+                }
+            } catch (e) {}
+        }
+        if (!userId || Number.isNaN(userId)) {
+            showToast('User ID tidak ditemukan. Silakan login ulang.', 'error');
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
         }
 
         const codeInputs = document.querySelectorAll('.code-input');
-        const form = document.getElementById('verificationForm');
+        const form = document.getElementById('otpForm');
         const resendLink = document.getElementById('resendLink');
         const timerElement = document.getElementById('timer');
-        
-        let timeLeft = 300; // 5 minutes in seconds
+        let timeLeft = 600; // 10 minutes
 
-        // Handle input navigation
         codeInputs.forEach((input, index) => {
             input.addEventListener('input', (e) => {
                 if (e.target.value.length === 1 && index < codeInputs.length - 1) {
                     codeInputs[index + 1].focus();
                 }
             });
-
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Backspace' && !e.target.value && index > 0) {
                     codeInputs[index - 1].focus();
@@ -100,13 +100,11 @@
             });
         });
 
-        // Timer countdown
         const timer = setInterval(() => {
             timeLeft--;
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
             timerElement.textContent = `Kode berlaku: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-            
             if (timeLeft <= 0) {
                 clearInterval(timer);
                 timerElement.textContent = 'Kode sudah kadaluarsa';
@@ -114,34 +112,24 @@
             }
         }, 1000);
 
-        // Handle form submission
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const code = Array.from(codeInputs).map(input => input.value).join('');
-            
             if (code.length !== 6) {
                 showToast('Mohon masukkan kode 6 digit', 'error');
                 return;
             }
-
-            console.log('Form submitted with userId:', userId, 'code:', code);
             showLoading('Memverifikasi...');
-            
             try {
-                console.log('Sending request to verify email...');
-                const result = await api.verifyEmail({ userId, code });
-                console.log('Verification result:', result);
-                
+                const result = await api.verifyLoginOtp({ userId, otpCode: code });
                 hideLoading();
-                
                 if (result.success) {
-                    showToast('Email berhasil diverifikasi!', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'movies.html';
-                    }, 1500);
+                    showToast('Login berhasil!', 'success');
+                    userState.setUser(result.user);
+                    // Refresh navigation immediately
+                    try { updateNavigation('movies'); } catch (e) {}
+                    setTimeout(() => { window.location.href = 'movies.html'; }, 1000);
                 } else {
-                    console.error('Verification failed:', result.message);
                     showToast(result.message || 'Verifikasi gagal', 'error');
                 }
             } catch (error) {
@@ -151,27 +139,22 @@
             }
         });
 
-        // Handle resend
         resendLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            
             showLoading('Mengirim ulang kode...');
-            
             try {
-                const result = await api.resendVerification(userId);
-                
+                const result = await api.resendLoginOtp({ userId });
                 hideLoading();
-                
                 if (result.success) {
-                    showToast('Kode verifikasi baru telah dikirim!', 'success');
-                    timeLeft = 300;
+                    showToast('Kode OTP baru telah dikirim!', 'success');
+                    timeLeft = 600;
                 } else {
                     showToast(result.message || 'Gagal mengirim ulang kode', 'error');
                 }
             } catch (error) {
                 hideLoading();
-                showToast('Terjadi kesalahan. Silakan coba lagi.', 'error');
                 console.error('Resend error:', error);
+                showToast('Terjadi kesalahan. Silakan coba lagi.', 'error');
             }
         });
     </script>

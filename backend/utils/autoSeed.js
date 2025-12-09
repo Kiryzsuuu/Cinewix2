@@ -1,9 +1,11 @@
-const Movie = require('../models/Movie');
+const { Movie } = require('../models/mysql-models');
+const { connectDB } = require('../config/mysql-database');
 
 async function autoSeedDatabase() {
     try {
+        await connectDB();
         // Check if movies already exist
-        const existingMovies = await Movie.countDocuments();
+        const existingMovies = await Movie.count();
         
         if (existingMovies > 0) {
             console.log(`Database already has ${existingMovies} movies, skipping auto-seed`);
@@ -61,7 +63,7 @@ async function autoSeedDatabase() {
             }
         ];
 
-        await Movie.insertMany(movies);
+        await Movie.bulkCreate(movies);
         console.log(`Successfully auto-seeded ${movies.length} movies to database`);
 
     } catch (error) {

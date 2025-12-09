@@ -155,18 +155,27 @@
                 
                 hideLoading();
                 
-                if (result.success) {
-                    showToast('Login berhasil!', 'success');
-                    userState.currentUser = result.user;
-                    userState.isAuthenticated = true;
+                if (result.success && result.requireOtp) {
+                    // Redirect to dedicated OTP page
+                    console.log('[LOGIN] OTP flow starting. userId:', result.userId);
+                    // Save userId to sessionStorage as a fallback
+                    try { sessionStorage.setItem('loginUserId', String(result.userId)); } catch (e) {}
+                    showToast('Kode OTP telah dikirim ke email Anda!', 'success');
                     setTimeout(() => {
-                        window.location.href = 'movies.html';
-                    }, 1000);
+                        window.location.href = `login-otp.html?userId=${encodeURIComponent(result.userId)}`;
+                    }, 1200);
                 } else if (result.needVerification) {
                     showToast('Email belum diverifikasi', 'error');
                     setTimeout(() => {
                         window.location.href = `verify-email.html?userId=${result.userId}`;
                     }, 1500);
+                } else if (result.success) {
+                    // Direct login without OTP (shouldn't happen but handle it)
+                    showToast('Login berhasil!', 'success');
+                    userState.setUser(result.user);
+                    setTimeout(() => {
+                        window.location.href = 'movies.html';
+                    }, 1000);
                 } else {
                     showToast(result.message || 'Login gagal', 'error');
                 }

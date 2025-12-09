@@ -90,6 +90,26 @@ const api = {
         return result;
     },
 
+    async verifyLoginOtp(data) {
+        const response = await fetch(`${API_URL}/auth/verify-login-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'include'
+        });
+        return response.json();
+    },
+
+    async resendLoginOtp(payload) {
+        const response = await fetch(`${API_URL}/auth/resend-login-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'include'
+        });
+        return response.json();
+    },
+
     async getCurrentUser() {
         const response = await fetch(`${API_URL}/auth/me`, {
             credentials: 'include'
@@ -278,9 +298,11 @@ const userState = {
         if (user) {
             this.user = user;
             this.isAuthenticated = true;
+            try { localStorage.setItem('cw_user', JSON.stringify(user)); } catch (e) {}
         } else {
             this.user = null;
             this.isAuthenticated = false;
+            try { localStorage.removeItem('cw_user'); } catch (e) {}
         }
     },
 
@@ -291,9 +313,25 @@ const userState = {
                 this.setUser(result.user);
                 return true;
             }
+            // Fallback to localStorage when cookie isn't available
+            try {
+                const cached = localStorage.getItem('cw_user');
+                if (cached) {
+                    this.setUser(JSON.parse(cached));
+                    return true;
+                }
+            } catch (e) {}
             this.setUser(null);
             return false;
         } catch (error) {
+            // Network or auth error; try local cache
+            try {
+                const cached = localStorage.getItem('cw_user');
+                if (cached) {
+                    this.setUser(JSON.parse(cached));
+                    return true;
+                }
+            } catch (e) {}
             this.setUser(null);
             return false;
         }

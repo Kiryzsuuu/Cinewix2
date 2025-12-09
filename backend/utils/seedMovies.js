@@ -1,8 +1,101 @@
 require('dotenv').config();
-const mongoose = require('mongoose');
-const Movie = require('../models/Movie');
+const { connectDB } = require('../config/mysql-database');
+const { Movie } = require('../models/mysql-models');
 
 const movies = [
+    {
+        title: "Top Gun: Maverick",
+        synopsis: "Setelah lebih dari 30 tahun menjadi salah satu pilot terbaik Angkatan Laut, Maverick melatih sekelompok lulusan Top Gun untuk menjalankan misi khusus yang berbahaya.",
+        genre: "Action, Drama",
+        duration: 131,
+        rating: 8.7,
+        posterUrl: "https://m.media-amazon.com/images/M/MV5BZWYzOGEwNTgtNWU3NS00ZTQ0LWJkODUtMmVhMjIwMjA1ZmQwXkEyXkFqcGdeQXVyMjkwOTAyMDU@._V1_SX300.jpg",
+        releaseDate: "2022-05-27",
+        director: "Joseph Kosinski",
+        cast: ["Tom Cruise", "Miles Teller", "Jennifer Connelly"],
+        price: 50000,
+        showTimes: ["12:00", "14:30", "17:00", "19:30"],
+        availableSeats: 100,
+        isActive: true
+    },
+    {
+        title: "Guardians of the Galaxy Vol. 3",
+        synopsis: "Peter Quill dan kru menghadapi misi untuk melindungi salah satu anggota mereka.",
+        genre: "Action, Adventure, Sci-Fi",
+        duration: 150,
+        rating: 8.5,
+        posterUrl: "https://m.media-amazon.com/images/M/MV5BMDgxOTdjMzYtZGQxMS00ZTAzLWI4Y2UtMTQzN2VlYjYyZWRiXkEyXkFqcGdeQXVyMTkxNjUyNQ@@._V1_SX300.jpg",
+        releaseDate: "2023-05-05",
+        director: "James Gunn",
+        cast: ["Chris Pratt", "Zoe Saldana", "Dave Bautista"],
+        price: 55000,
+        showTimes: ["11:00", "13:30", "16:00", "18:30", "21:00"],
+        availableSeats: 100,
+        isActive: true
+    },
+    {
+        title: "Oppenheimer",
+        synopsis: "Kisah tentang J. Robert Oppenheimer dan perannya dalam pengembangan bom atom.",
+        genre: "Biography, Drama, History",
+        duration: 180,
+        rating: 9.0,
+        posterUrl: "https://m.media-amazon.com/images/M/MV5BMDBmYTZjNjUtN2M1MS00MTQ2LTk2ODgtNzc2M2QyZGE5NTVjXkEyXkFqcGdeQXVyNzAwMjU2MTY@._V1_SX300.jpg",
+        releaseDate: "2023-07-21",
+        director: "Christopher Nolan",
+        cast: ["Cillian Murphy", "Emily Blunt", "Matt Damon"],
+        price: 60000,
+        showTimes: ["14:00", "18:00", "21:00"],
+        availableSeats: 100,
+        isActive: true
+    },
+    {
+        title: "Barbie",
+        synopsis: "Barbie and Ken are having the time of their lives in the colorful and seemingly perfect world of Barbie Land.",
+        genre: "Comedy, Adventure, Fantasy",
+        duration: 114,
+        rating: 7.8,
+        posterUrl: "https://m.media-amazon.com/images/M/MV5BNjU3N2QxNzYtMjk1NC00MTc4LTk1NTQtMmUxNTljM2I0NDA5XkEyXkFqcGdeQXVyODE5NzE3OTE@._V1_SX300.jpg",
+        releaseDate: "2023-07-21",
+        director: "Greta Gerwig",
+        cast: ["Margot Robbie", "Ryan Gosling", "Will Ferrell"],
+        price: 55000,
+        showTimes: ["10:00", "12:30", "15:00", "17:30", "20:00"],
+        availableSeats: 100,
+        isActive: true
+    },
+    {
+        title: "Spider-Man: Across the Spider-Verse",
+        synopsis: "Miles Morales catapults across the Multiverse, where he encounters a team of Spider-People.",
+        genre: "Animation, Action, Adventure",
+        duration: 140,
+        rating: 8.9,
+        posterUrl: "https://m.media-amazon.com/images/M/MV5BMzI0NmVkMjEtYmY4MS00ZDMxLTlkZmEtMzU4MDQxYTMzMjU2XkEyXkFqcGdeQXVyMzQ0MzA0NTM@._V1_SX300.jpg",
+        releaseDate: "2023-06-02",
+        director: "Joaquim Dos Santos",
+        cast: ["Shameik Moore", "Hailee Steinfeld", "Brian Tyree Henry"],
+        price: 55000,
+        showTimes: ["11:30", "14:00", "16:30", "19:00", "21:30"],
+        availableSeats: 100,
+        isActive: true
+    },
+    {
+        title: "John Wick: Chapter 4",
+        synopsis: "John Wick uncovers a path to defeating The High Table.",
+        genre: "Action, Crime, Thriller",
+        duration: 169,
+        rating: 8.2,
+        posterUrl: "https://m.media-amazon.com/images/M/MV5BMDExZGMyOTMtMDgyYi00NGIwLWJhMTEtOTdkZGFjNmZiMTEwXkEyXkFqcGdeQXVyMjM4NTM5NDY@._V1_SX300.jpg",
+        releaseDate: "2023-03-24",
+        director: "Chad Stahelski",
+        cast: ["Keanu Reeves", "Donnie Yen", "Bill Skarsgård"],
+        price: 60000,
+        showTimes: ["13:00", "16:00", "19:00", "22:00"],
+        availableSeats: 100,
+        isActive: true
+    }
+];
+
+const oldMovies = [
     {
         title: "Top Gun: Maverick",
         description: "Setelah lebih dari 30 tahun menjadi salah satu pilot terbaik Angkatan Laut, Maverick melatih sekelompok lulusan Top Gun untuk menjalankan misi khusus yang berbahaya.",
@@ -155,27 +248,17 @@ const movies = [
     }
 ];
 
-const connectDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log('MongoDB Connected');
-    } catch (error) {
-        console.error('Error:', error.message);
-        process.exit(1);
-    }
-};
-
 const seedMovies = async () => {
     try {
         await connectDB();
         
-        // Clear existing movies
-        await Movie.deleteMany({});
-        console.log('Existing movies cleared');
+        // Clear existing movies (using DELETE instead of TRUNCATE to avoid FK constraint issue)
+        const deletedCount = await Movie.destroy({ where: {} });
+        console.log(`Cleared ${deletedCount} existing movies`);
         
-        // Insert new movies
-        await Movie.insertMany(movies);
-        console.log('Movies seeded successfully!');
+        // Insert new movies using bulkCreate
+        const createdMovies = await Movie.bulkCreate(movies);
+        console.log(`✅ ${createdMovies.length} movies seeded successfully!`);
         
         process.exit(0);
     } catch (error) {

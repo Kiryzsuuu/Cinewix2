@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const Movie = require('../models/Movie');
+const { Movie } = require('../models/mysql-models');
+const { connectDB } = require('../config/mysql-database');
 
 // GET /api/seed - Seed database with initial data
 router.get('/', async (req, res) => {
     try {
+        await connectDB();
         // Check if movies already exist
-        const existingMovies = await Movie.countDocuments();
+        const existingMovies = await Movie.count();
         
         if (existingMovies > 0) {
             return res.json({
@@ -65,7 +67,7 @@ router.get('/', async (req, res) => {
             }
         ];
 
-        await Movie.insertMany(movies);
+        await Movie.bulkCreate(movies);
 
         res.json({
             success: true,
