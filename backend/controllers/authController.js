@@ -9,10 +9,8 @@ const { connectDB } = require('../config/mysql-database');
 const register = async (req, res) => {
     console.log('[REGISTER] Starting registration process');
     try {
-        // Ensure database connection
-        console.log('[REGISTER] Connecting to database...');
-        await connectDB();
-        console.log('[REGISTER] Database connected');
+        // Connection already established in server.js
+        console.log('[REGISTER] Processing registration...');
         
         const { firstName, lastName, email, password, phone } = req.body;
         console.log('[REGISTER] Request body:', { firstName, lastName, email, phone: phone ? 'provided' : 'missing' });
@@ -86,7 +84,6 @@ const register = async (req, res) => {
 // Verify email
 const verifyEmail = async (req, res) => {
     try {
-        await connectDB();
         const { userId, code } = req.body;
         
         console.log('[VERIFY] Received userId:', userId, 'Type:', typeof userId, 'Code:', code);
@@ -136,7 +133,7 @@ const verifyEmail = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign(
-            { id: user._id, email: user.email }, 
+            { id: user.id, email: user.email }, 
             process.env.JWT_SECRET, 
             { expiresIn: '7d' }
         );
@@ -173,7 +170,6 @@ const verifyEmail = async (req, res) => {
 // Resend verification code
 const resendVerificationCode = async (req, res) => {
     try {
-        await connectDB();
         const { userId } = req.body;
         
         console.log('[RESEND] Received userId:', userId, 'Type:', typeof userId);
@@ -235,7 +231,6 @@ const resendVerificationCode = async (req, res) => {
 // Login - Step 1: Send OTP
 const login = async (req, res) => {
     try {
-        await connectDB();
         const { email, password } = req.body;
 
         // Find user
@@ -386,7 +381,6 @@ const verifyLoginOtp = async (req, res) => {
 // Resend Login OTP
 const resendLoginOtp = async (req, res) => {
     try {
-        await connectDB();
         const { userId, email } = req.body;
         console.log('[RESEND LOGIN OTP] Received userId:', userId, 'email:', email);
 
@@ -439,7 +433,6 @@ const resendLoginOtp = async (req, res) => {
 // Forgot password - send reset link
 const forgotPassword = async (req, res) => {
     try {
-        await connectDB();
         const { email } = req.body;
 
         const user = await User.findOne({ where: { email } });
@@ -478,7 +471,6 @@ const forgotPassword = async (req, res) => {
 // Reset password with token
 const resetPassword = async (req, res) => {
     try {
-        await connectDB();
         const { token, password } = req.body;
 
         console.log('[RESET PASSWORD] Received token:', token);
