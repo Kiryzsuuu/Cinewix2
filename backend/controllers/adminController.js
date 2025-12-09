@@ -1,16 +1,15 @@
-const { User, Booking, Transaction, Movie } = require('../models/mysql-models');
-const { connectDB } = require('../config/mysql-database');
+const User = require('../models/User');
+const Booking = require('../models/Booking');
+const Transaction = require('../models/Transaction');
+const Movie = require('../models/Movie');
 const bcrypt = require('bcryptjs');
-const { Op } = require('sequelize');
 
 // Get all users (admin only)
 const getAllUsers = async (req, res) => {
     try {
-        await connectDB();
-        const users = await User.findAll({
-            attributes: { exclude: ['password'] },
-            order: [['createdAt', 'DESC']]
-        });
+        const users = await User.find()
+            .select('-password')
+            .sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -30,37 +29,30 @@ const getAllUsers = async (req, res) => {
 // Get dashboard statistics
 const getDashboardStats = async (req, res) => {
     try {
-        await connectDB();
+        const totalUsers = await User.countDocuments();
+        const totalMovies = await Movie.countDocuments({ isActive: true });
+        const totalBookings = await Booking.countDocuments();
         
-        const totalUsers = await User.count();
-        const totalMovies = await Movie.count({ where: { isActive: true } });
-        const totalBookings = await Booking.count();
-        
-        const revenueResult = await Transaction.sum('amount', {
-            where: { status: 'success' }
-        });
-        const totalRevenue = revenueResult || 0;
+        const revenueResult = await Transaction.aggregate([
+            { $match: { status: 'success' } },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
-        const recentBookings = await Booking.findAll({
-            include: [
-                { model: User, attributes: ['firstName', 'lastName', 'email'] },
-                { model: Movie, attributes: ['title'] }
-            ],
-            order: [['createdAt', 'DESC']],
-            limit: 10
-        });
+        const recentBookings = await Booking.find()
+            .populate('user', 'firstName lastName email')
+            .populate('movie', 'title')
+            .sort({ createdAt: -1 })
+            .limit(10);
 
-        const recentTransactions = await Transaction.findAll({
-            include: [
-                { model: User, attributes: ['firstName', 'lastName', 'email'] },
-                { 
-                    model: Booking,
-                    include: [{ model: Movie, attributes: ['title'] }]
-                }
-            ],
-            order: [['createdAt', 'DESC']],
-            limit: 10
-        });
+        const recentTransactions = await Transaction.find()
+            .populate('user', 'firstName lastName email')
+            .populate({
+                path: 'booking',
+                populate: { path: 'movie', select: 'title' }
+            })
+            .sort({ createdAt: -1 })
+            .limit(10);
 
         res.json({
             success: true,
@@ -86,18 +78,13 @@ const getDashboardStats = async (req, res) => {
 // Get all transactions (admin only)
 const getAllTransactions = async (req, res) => {
     try {
-        await connectDB();
-        
-        const transactions = await Transaction.findAll({
-            include: [
-                { model: User, attributes: ['firstName', 'lastName', 'email'] },
-                { 
-                    model: Booking,
-                    include: [{ model: Movie, attributes: ['title'] }]
-                }
-            ],
-            order: [['createdAt', 'DESC']]
-        });
+        const transactions = await Transaction.find()
+            .populate('user', 'firstName lastName email')
+            .populate({
+                path: 'booking',
+                populate: { path: 'movie', select: 'title' }
+            })
+            .sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -117,10 +104,9 @@ const getAllTransactions = async (req, res) => {
 // Update user role (admin only)
 const updateUserRole = async (req, res) => {
     try {
-        await connectDB();
         const { userId, role } = req.body;
 
-        const user = await User.findByPk(userId);
+        const user = await User.findById(userId);
         
         if (!user) {
             return res.status(404).json({ 
@@ -172,8 +158,7 @@ const updateUserRole = async (req, res) => {
 // Delete user (admin only)
 const deleteUser = async (req, res) => {
     try {
-        await connectDB();
-        const user = await User.findByPk(req.params.id);
+        const user = await User.findById(req.params.id);
         
         if (!user) {
             return res.status(404).json({ 
@@ -198,7 +183,7 @@ const deleteUser = async (req, res) => {
             });
         }
 
-        await user.destroy();
+        await User.findByIdAndDelete(req.params.id);
 
         res.json({
             success: true,
@@ -217,15 +202,10 @@ const deleteUser = async (req, res) => {
 // Get all bookings (admin only)
 const getAllBookings = async (req, res) => {
     try {
-        await connectDB();
-        
-        const bookings = await Booking.findAll({
-            include: [
-                { model: User, attributes: ['firstName', 'lastName', 'email'] },
-                { model: Movie, attributes: ['title'] }
-            ],
-            order: [['createdAt', 'DESC']]
-        });
+        const bookings = await Booking.find()
+            .populate('user', 'firstName lastName email')
+            .populate('movie', 'title')
+            .sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -245,10 +225,9 @@ const getAllBookings = async (req, res) => {
 // Update booking status (admin only)
 const updateBookingStatus = async (req, res) => {
     try {
-        await connectDB();
         const { bookingId, status, paymentStatus } = req.body;
 
-        const booking = await Booking.findByPk(bookingId);
+        const booking = await Booking.findById(bookingId);
         
         if (!booking) {
             return res.status(404).json({ 
@@ -264,9 +243,9 @@ const updateBookingStatus = async (req, res) => {
 
         // Update transaction if payment status changed
         if (paymentStatus) {
-            await Transaction.update(
-                { status: paymentStatus === 'paid' ? 'success' : 'pending' },
-                { where: { bookingId: bookingId } }
+            await Transaction.updateMany(
+                { booking: bookingId },
+                { status: paymentStatus === 'paid' ? 'success' : 'pending' }
             );
         }
 

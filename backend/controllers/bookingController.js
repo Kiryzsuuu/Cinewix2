@@ -1,5 +1,7 @@
-const { Booking, Transaction, Movie, User } = require('../models/mysql-models');
-const { connectDB } = require('../config/mysql-database');
+const Booking = require('../models/Booking');
+const Transaction = require('../models/Transaction');
+const Movie = require('../models/Movie');
+const User = require('../models/User');
 const { sendBookingConfirmation, sendBookingReceipt } = require('../utils/emailService');
 
 // Generate booking code
@@ -22,11 +24,10 @@ const generateTransactionId = () => {
 // Create booking
 const createBooking = async (req, res) => {
     try {
-        await connectDB();
         const { movieId, showtime, seats, paymentMethod } = req.body;
         
         // Get movie details
-        const movie = await Movie.findByPk(movieId);
+        const movie = await Movie.findById(movieId);
         if (!movie) {
             return res.status(404).json({ 
                 success: false, 
@@ -99,12 +100,9 @@ const createBooking = async (req, res) => {
 // Get user bookings
 const getUserBookings = async (req, res) => {
     try {
-        await connectDB();
-        const bookings = await Booking.findAll({
-            where: { userId: req.user.id },
-            include: [{ model: Movie }],
-            order: [['createdAt', 'DESC']]
-        });
+        const bookings = await Booking.find({ user: req.user.id })
+            .populate('movie')
+            .sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -124,13 +122,9 @@ const getUserBookings = async (req, res) => {
 // Get booking by ID
 const getBookingById = async (req, res) => {
     try {
-        await connectDB();
-        const booking = await Booking.findByPk(req.params.id, {
-            include: [
-                { model: Movie },
-                { model: User, attributes: ['firstName', 'lastName', 'email'] }
-            ]
-        });
+        const booking = await Booking.findById(req.params.id)
+            .populate('movie')
+            .populate('user', 'firstName lastName email');
 
         if (!booking) {
             return res.status(404).json({ 
@@ -140,7 +134,7 @@ const getBookingById = async (req, res) => {
         }
 
         // Check if user owns this booking or is admin
-        if (booking.userId !== req.user.id && 
+        if (booking.user._id.toString() !== req.user.id.toString() && 
             req.user.role !== 'admin' && req.user.role !== 'superadmin') {
             return res.status(403).json({ 
                 success: false, 
@@ -165,8 +159,7 @@ const getBookingById = async (req, res) => {
 // Cancel booking
 const cancelBooking = async (req, res) => {
     try {
-        await connectDB();
-        const booking = await Booking.findByPk(req.params.id);
+        const booking = await Booking.findById(req.params.id);
 
         if (!booking) {
             return res.status(404).json({ 
@@ -176,7 +169,7 @@ const cancelBooking = async (req, res) => {
         }
 
         // Check if user owns this booking
-        if (booking.userId !== req.user.id) {
+        if (booking.user.toString() !== req.user.id.toString()) {
             return res.status(403).json({ 
                 success: false, 
                 message: 'Akses ditolak' 

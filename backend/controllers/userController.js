@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { User } = require('../models/mysql-models');
-const { connectDB } = require('../config/mysql-database');
+const User = require('../models/User');
 const { generateVerificationCode, sendWelcomeEmail } = require('../utils/emailService');
 
 const fsPromises = fs.promises;
@@ -19,10 +18,8 @@ const ensureUploadDir = (dirPath) => {
 
 const getProfile = async (req, res) => {
     try {
-        await connectDB();
-        const user = await User.findByPk(req.user.id, {
-            attributes: { exclude: ['password', 'verificationCode', 'verificationExpires', 'resetPasswordToken', 'resetPasswordExpires'] }
-        });
+        const user = await User.findById(req.user.id)
+            .select('-password -verificationCode -verificationExpires -resetPasswordToken -resetPasswordExpires');
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -46,7 +43,6 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
     try {
-        await connectDB();
         const userId = req.user.id;
         const {
             firstName,
@@ -77,8 +73,8 @@ const updateProfile = async (req, res) => {
         if (email !== undefined) {
             const normalizedEmail = normalize(email)?.toLowerCase();
             if (normalizedEmail && normalizedEmail !== req.user.email) {
-                const existingUser = await User.findOne({ where: { email: normalizedEmail } });
-                if (existingUser && existingUser.id !== userId) {
+                const existingUser = await User.findOne({ email: normalizedEmail });
+                if (existingUser && existingUser._id.toString() !== userId) {
                     return res.status(400).json({
                         success: false,
                         message: 'Email sudah digunakan oleh akun lain'
@@ -95,9 +91,8 @@ const updateProfile = async (req, res) => {
         }
 
         if (!Object.keys(updateFields).length) {
-            const currentUser = await User.findByPk(userId, {
-                attributes: { exclude: ['password', 'verificationCode', 'verificationExpires', 'resetPasswordToken', 'resetPasswordExpires'] }
-            });
+            const currentUser = await User.findById(userId)
+                .select('-password -verificationCode -verificationExpires -resetPasswordToken -resetPasswordExpires');
             return res.json({
                 success: true,
                 user: currentUser,
@@ -105,18 +100,25 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        const [updateCount] = await User.update(updateFields, { where: { id: userId } });
+        const updatedUser = await User.findById(userId);
 
-        if (!updateCount) {
+        if (!updatedUser) {
             return res.status(404).json({
                 success: false,
                 message: 'User tidak ditemukan'
             });
         }
 
-        const updatedUser = await User.findByPk(userId, {
-            attributes: { exclude: ['password', 'verificationCode', 'verificationExpires', 'resetPasswordToken', 'resetPasswordExpires'] }
-        });
+        Object.assign(updatedUser, updateFields);
+        await updatedUser.save();
+
+        // Remove sensitive fields from response
+        const userResponse = updatedUser.toObject();
+        delete userResponse.password;
+        delete userResponse.verificationCode;
+        delete userResponse.verificationExpires;
+        delete userResponse.resetPasswordToken;
+        delete userResponse.resetPasswordExpires;
 
         if (emailChanged && verificationCode) {
             try {
@@ -128,9 +130,9 @@ const updateProfile = async (req, res) => {
 
         res.json({
             success: true,
-            user: updatedUser,
+            user: userResponse,
             needVerification: emailChanged,
-            userId: updatedUser.id
+            userId: updatedUser._id
         });
     } catch (error) {
         console.error('Update profile error:', error);
@@ -186,12 +188,10 @@ const updateProfilePhoto = async (req, res) => {
             });
         }
 
-        await connectDB();
-
         const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
         ensureUploadDir(uploadDir);
 
-        const user = await User.findByPk(req.user.id);
+        const user = await User.findById(req.user.id);
         if (!user) {
             await deleteIfExists(req.file.path);
             return res.status(404).json({

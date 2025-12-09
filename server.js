@@ -7,16 +7,14 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const { connectDB } = require('./backend/config/mysql-database');
+const { connectDB } = require('./backend/config/database');
 
 const app = express();
 
-// Connect to database for local development
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-    connectDB().catch(err => {
-        console.error('Initial DB connection failed:', err.message);
-    });
-}
+// Connect to database
+connectDB().catch(err => {
+    console.error('Initial DB connection failed:', err.message);
+});
 
 // Middleware
 app.use(cors({
@@ -36,11 +34,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint (no DB needed)
 app.get('/api/health', (req, res) => {
+    const mongoose = require('mongoose');
     res.json({ 
         success: true, 
         message: 'Server is running',
-        env: process.env.NODE_ENV,
-        mongoConnected: false
+        env: process.env.NODE_ENV || 'development',
+        database: 'MongoDB',
+        dbConnected: mongoose.connection.readyState === 1
     });
 });
 

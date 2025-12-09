@@ -1,21 +1,11 @@
-const { Movie } = require('../models/mysql-models');
-const { connectDB } = require('../config/mysql-database');
-const { Op } = require('sequelize');
+const Movie = require('../models/Movie');
 
 // Get all movies
 const getAllMovies = async (req, res) => {
     try {
-        // In Vercel, connection is already established in mysql-database.js
-        // Only call connectDB in development
-        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-            await connectDB();
-        }
-        
-        const movies = await Movie.findAll({
-            where: { isActive: true },
-            order: [['releaseDate', 'DESC']],
-            attributes: { exclude: ['reviews'] }
-        });
+        const movies = await Movie.find({ isActive: true })
+            .sort({ releaseDate: -1 })
+            .select('-reviews');
         
         res.json({
             success: true,
@@ -36,8 +26,7 @@ const getAllMovies = async (req, res) => {
 // Get movie by ID
 const getMovieById = async (req, res) => {
     try {
-        await connectDB();
-        const movie = await Movie.findByPk(req.params.id);
+        const movie = await Movie.findById(req.params.id);
         
         if (!movie) {
             return res.status(404).json({ 
@@ -87,8 +76,7 @@ const createMovie = async (req, res) => {
 // Update movie (admin only)
 const updateMovie = async (req, res) => {
     try {
-        await connectDB();
-        const movie = await Movie.findByPk(req.params.id);
+        const movie = await Movie.findById(req.params.id);
         
         if (!movie) {
             return res.status(404).json({ 
@@ -97,7 +85,8 @@ const updateMovie = async (req, res) => {
             });
         }
         
-        await movie.update(req.body);
+        Object.assign(movie, req.body);
+        await movie.save();
 
         res.json({
             success: true,
@@ -117,8 +106,7 @@ const updateMovie = async (req, res) => {
 // Delete movie (admin only)
 const deleteMovie = async (req, res) => {
     try {
-        await connectDB();
-        const movie = await Movie.findByPk(req.params.id);
+        const movie = await Movie.findByIdAndDelete(req.params.id);
         
         if (!movie) {
             return res.status(404).json({ 
@@ -126,8 +114,6 @@ const deleteMovie = async (req, res) => {
                 message: 'Film tidak ditemukan' 
             });
         }
-        
-        await movie.destroy();
 
         res.json({
             success: true,

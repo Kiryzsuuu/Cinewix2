@@ -1,9 +1,7 @@
-// Use MySQL models instead of MongoDB
-const { User } = require('../models/mysql-models');
+const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { generateVerificationCode, generateOTP, sendWelcomeEmail, sendPasswordResetEmail, sendLoginOTP } = require('../utils/emailService');
-const { connectDB } = require('../config/mysql-database');
 
 // Register user
 const register = async (req, res) => {
@@ -30,8 +28,8 @@ const register = async (req, res) => {
             });
         }
 
-        // Check if user exists (Sequelize syntax)
-        const existingUser = await User.findOne({ where: { email } });
+        // Check if user exists
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ 
                 success: false, 
@@ -88,11 +86,11 @@ const verifyEmail = async (req, res) => {
         
         console.log('[VERIFY] Received userId:', userId, 'Type:', typeof userId, 'Code:', code);
         
-        // Convert userId to integer if it's a string
-        const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-        console.log('[VERIFY] Converted userId:', userIdInt, 'Type:', typeof userIdInt);
+        // Convert userId to string for MongoDB ObjectId
+        const userIdStr = userId.toString();
+        console.log('[VERIFY] userId:', userIdStr, 'Type:', typeof userIdStr);
 
-        const user = await User.findByPk(userIdInt);
+        const user = await User.findById(userIdStr);
         console.log('[VERIFY] User found:', user ? `Yes (${user.email})` : 'No');
         
         if (!user) {
@@ -181,11 +179,11 @@ const resendVerificationCode = async (req, res) => {
             });
         }
         
-        // Convert userId to integer if it's a string
-        const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-        console.log('[RESEND] Converted userId:', userIdInt, 'Type:', typeof userIdInt);
+        // Convert userId to string for MongoDB ObjectId
+        const userIdStr = userId.toString();
+        console.log('[RESEND] userId:', userIdStr, 'Type:', typeof userIdStr);
 
-        const user = await User.findByPk(userIdInt);
+        const user = await User.findById(userIdStr);
         
         console.log('[RESEND] User found:', user ? `Yes (${user.email})` : 'No');
         
@@ -234,7 +232,7 @@ const login = async (req, res) => {
         const { email, password } = req.body;
 
         // Find user
-        const user = await User.findOne({ where: { email } });
+        const user = await User.findOne({ email });
         if (!user) {
             return res.status(401).json({ 
                 success: false, 
@@ -296,23 +294,22 @@ const login = async (req, res) => {
 // Login - Step 2: Verify OTP
 const verifyLoginOtp = async (req, res) => {
     try {
-        await connectDB();
         const { userId, otpCode } = req.body;
         console.log('[LOGIN OTP] Received userId:', userId, 'Type:', typeof userId, 'OTP:', otpCode);
 
-        // Normalize userId to integer if present
+        // Try to find by userId if present
         let user = null;
         if (userId !== undefined && userId !== null) {
-            const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-            if (userIdInt && !Number.isNaN(userIdInt)) {
-                user = await User.findByPk(userIdInt);
+            const userIdStr = userId.toString();
+            if (userIdStr) {
+                user = await User.findById(userIdStr);
             }
         }
 
         // Fallback: find by OTP code if userId is missing or lookup failed
         if (!user) {
             console.log('[LOGIN OTP] Fallback: searching by OTP code');
-            user = await User.findOne({ where: { loginOtpCode: otpCode } });
+            user = await User.findOne({ loginOtpCode: otpCode });
         }
 
         console.log('[LOGIN OTP] User found:', user ? `Yes (${user.email})` : 'No');
@@ -386,14 +383,14 @@ const resendLoginOtp = async (req, res) => {
 
         let user = null;
         if (userId) {
-            const userIdInt = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-            if (userIdInt && !Number.isNaN(userIdInt)) {
-                user = await User.findByPk(userIdInt);
+            const userIdStr = userId.toString();
+            if (userIdStr) {
+                user = await User.findById(userIdStr);
             }
         }
 
         if (!user && email) {
-            user = await User.findOne({ where: { email } });
+            user = await User.findOne({ email });
         }
 
         if (!user) {
@@ -435,7 +432,7 @@ const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
 
-        const user = await User.findOne({ where: { email } });
+        const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ 
                 success: false, 
@@ -484,9 +481,7 @@ const resetPassword = async (req, res) => {
 
         // Find user by token
         const user = await User.findOne({ 
-            where: { 
-                resetPasswordToken: token
-            } 
+            resetPasswordToken: token
         });
 
         console.log('[RESET PASSWORD] User found:', user ? `Yes (${user.email})` : 'No');
