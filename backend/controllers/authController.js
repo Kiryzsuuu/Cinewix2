@@ -2,10 +2,14 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { generateVerificationCode, generateOTP, sendWelcomeEmail, sendPasswordResetEmail, sendLoginOTP } = require('../utils/emailService');
+const connectDB = require('../config/database');
 
 // Register user
 const register = async (req, res) => {
     try {
+        // Ensure database connection for serverless
+        await connectDB();
+        
         const { firstName, lastName, email, password, phone } = req.body;
 
         // Validate required fields
@@ -77,6 +81,7 @@ const register = async (req, res) => {
 // Verify email
 const verifyEmail = async (req, res) => {
     try {
+        await connectDB();
         const { userId, code } = req.body;
 
         const user = await User.findById(userId);
@@ -154,6 +159,7 @@ const verifyEmail = async (req, res) => {
 // Resend verification code
 const resendVerificationCode = async (req, res) => {
     try {
+        await connectDB();
         const { userId } = req.body;
 
         const user = await User.findById(userId);
@@ -200,6 +206,7 @@ const resendVerificationCode = async (req, res) => {
 // Login - Step 1: Send OTP
 const login = async (req, res) => {
     try {
+        await connectDB();
         const { email, password } = req.body;
 
         // Find user
@@ -260,6 +267,7 @@ const login = async (req, res) => {
 // Login - Step 2: Verify OTP
 const verifyLoginOtp = async (req, res) => {
     try {
+        await connectDB();
         const { userId, otpCode } = req.body;
 
         const user = await User.findById(userId);
@@ -325,9 +333,10 @@ const verifyLoginOtp = async (req, res) => {
     }
 };
 
-// Forgot password - Send OTP
+// Forgot password - send OTP
 const forgotPassword = async (req, res) => {
     try {
+        await connectDB();
         const { email } = req.body;
 
         const user = await User.findOne({ email });
@@ -367,7 +376,8 @@ const forgotPassword = async (req, res) => {
 // Reset password with OTP
 const resetPassword = async (req, res) => {
     try {
-        const { userId, otpCode, newPassword } = req.body;
+        await connectDB();
+        const { email, otp, newPassword } = req.body;
 
         const user = await User.findById(userId);
         if (!user) {

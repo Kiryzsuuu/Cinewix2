@@ -88,33 +88,6 @@ app.use('/style.css', express.static(path.join(__dirname, 'style.css')));
 app.use(express.static(path.join(__dirname)));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database connection for serverless - connect on each API request
-const ensureDbConnection = async (req, res, next) => {
-    try {
-        if (!process.env.MONGODB_URI) {
-            throw new Error('MONGODB_URI not configured');
-        }
-        await connectDB();
-        next();
-    } catch (error) {
-        console.error('Database connection failed:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Database connection failed',
-            error: error.message
-        });
-    }
-};
-
-// Apply database middleware to all API routes (except debug)
-app.use('/api', (req, res, next) => {
-    // Skip database connection for debug routes
-    if (req.path.startsWith('/debug')) {
-        return next();
-    }
-    ensureDbConnection(req, res, next);
-});
-
 // Health check endpoint (no DB needed)
 app.get('/api/health', (req, res) => {
     res.json({ 
