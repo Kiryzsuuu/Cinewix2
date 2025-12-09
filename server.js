@@ -77,8 +77,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Database connection middleware for serverless
-app.use(async (req, res, next) => {
+// Serve static files FIRST (before DB middleware)
+app.use(express.static(path.join(__dirname)));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Database connection middleware for serverless (only for API routes)
+app.use('/api', async (req, res, next) => {
     try {
         if (!process.env.MONGODB_URI) {
             throw new Error('MONGODB_URI not configured');
@@ -94,10 +98,6 @@ app.use(async (req, res, next) => {
         });
     }
 });
-
-// Serve static files
-app.use(express.static(path.join(__dirname)));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
