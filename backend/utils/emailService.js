@@ -52,7 +52,8 @@ const sendWelcomeEmail = async (email, firstName, verificationCode) => {
         // Check if email config exists
         if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
             console.warn('Email service not configured, skipping email send');
-            return;
+            console.log('Verification code for', email, ':', verificationCode);
+            return; // Just return, don't throw error
         }
 
         const mailOptions = {
