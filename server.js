@@ -30,6 +30,10 @@ async function connectDB() {
         cachedDb = conn;
         console.log(`MongoDB Connected: ${conn.connection.host}`);
         
+        // Auto-seed database if empty
+        const { autoSeedDatabase } = require('./backend/utils/autoSeed');
+        await autoSeedDatabase();
+        
         // Create super admin if doesn't exist (only in non-serverless)
         if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
             const User = require('./backend/models/User');
