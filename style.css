@@ -284,7 +284,8 @@ body {
 }
 
 .movie-poster {
-    height: 400px;
+    width: 100%;
+    aspect-ratio: 2/3;
     overflow: hidden;
     position: relative;
     border-radius: 15px 15px 0 0;
@@ -294,11 +295,10 @@ body {
 .movie-poster img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
     transition: transform 0.3s ease;
     display: block;
-    background: #f0f0f0;
 }
 
 .movie-card:hover .movie-poster img {
