@@ -88,8 +88,8 @@ app.use('/style.css', express.static(path.join(__dirname, 'style.css')));
 app.use(express.static(path.join(__dirname)));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database connection middleware function
-const dbMiddleware = async (req, res, next) => {
+// Database connection for serverless - connect on each API request
+const ensureDbConnection = async (req, res, next) => {
     try {
         if (!process.env.MONGODB_URI) {
             throw new Error('MONGODB_URI not configured');
@@ -105,6 +105,15 @@ const dbMiddleware = async (req, res, next) => {
         });
     }
 };
+
+// Apply database middleware to all API routes (except debug)
+app.use('/api', (req, res, next) => {
+    // Skip database connection for debug routes
+    if (req.path.startsWith('/debug')) {
+        return next();
+    }
+    ensureDbConnection(req, res, next);
+});
 
 // Health check endpoint (no DB needed)
 app.get('/api/health', (req, res) => {
@@ -129,14 +138,14 @@ app.get('/public/css/style.css', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'css', 'style.css'));
 });
 
-// API Routes (with database middleware)
+// API Routes
 app.use('/api/debug', require('./backend/routes/debug'));
-app.use('/api/seed', dbMiddleware, require('./backend/routes/seed'));
-app.use('/api/auth', dbMiddleware, require('./backend/routes/auth'));
-app.use('/api/movies', dbMiddleware, require('./backend/routes/movies'));
-app.use('/api/bookings', dbMiddleware, require('./backend/routes/bookings'));
-app.use('/api/admin', dbMiddleware, require('./backend/routes/admin'));
-app.use('/api/users', dbMiddleware, require('./backend/routes/users'));
+app.use('/api/seed', require('./backend/routes/seed'));
+app.use('/api/auth', require('./backend/routes/auth'));
+app.use('/api/movies', require('./backend/routes/movies'));
+app.use('/api/bookings', require('./backend/routes/bookings'));
+app.use('/api/admin', require('./backend/routes/admin'));
+app.use('/api/users', require('./backend/routes/users'));
 
 // Serve frontend pages
 app.get('/', (req, res) => {
