@@ -78,6 +78,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Serve static files FIRST (before DB middleware)
+// Explicitly serve public folder
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/style.css', express.static(path.join(__dirname, 'style.css')));
 app.use(express.static(path.join(__dirname)));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
