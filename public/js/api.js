@@ -1,5 +1,7 @@
-// API Base URL
-const API_URL = 'http://localhost:5000/api';
+// API Base URL - automatically detect environment
+const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000/api' 
+    : '/api';
 
 // API Helper Functions
 const api = {

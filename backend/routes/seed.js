@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Movie = require('../models/Movie');
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 
 // GET /api/seed - Seed database with initial data
 router.get('/', async (req, res) => {
@@ -68,23 +66,6 @@ router.get('/', async (req, res) => {
         ];
 
         await Movie.insertMany(movies);
-
-        // Create super admin if doesn't exist
-        const existingAdmin = await User.findOne({ email: process.env.SUPER_ADMIN_EMAIL });
-        
-        if (!existingAdmin && process.env.SUPER_ADMIN_EMAIL && process.env.SUPER_ADMIN_PASSWORD) {
-            const hashedPassword = await bcrypt.hash(process.env.SUPER_ADMIN_PASSWORD, 10);
-            await User.create({
-                firstName: 'Super',
-                lastName: 'Admin',
-                email: process.env.SUPER_ADMIN_EMAIL,
-                password: hashedPassword,
-                phone: '08123456789',
-                role: 'superadmin',
-                isVerified: true,
-                isPermanent: true
-            });
-        }
 
         res.json({
             success: true,
