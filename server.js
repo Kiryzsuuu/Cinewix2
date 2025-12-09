@@ -126,6 +126,7 @@ app.get('/public/css/style.css', (req, res) => {
 });
 
 // API Routes
+app.use('/api/seed', require('./backend/routes/seed'));
 app.use('/api/auth', require('./backend/routes/auth'));
 app.use('/api/movies', require('./backend/routes/movies'));
 app.use('/api/bookings', require('./backend/routes/bookings'));
