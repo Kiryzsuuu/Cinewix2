@@ -191,8 +191,8 @@
                             <div class="movie-meta">
                                 <p class="movie-genre">${genres}</p>
                                 <div class="movie-stats">
-                                    <span class="movie-rating"><span class="star-icon">⭐</span> ${getDisplayRating(movie)}</span>
-                                    <span class="movie-duration"><span class="clock-icon">⏱️</span> ${durationText}</span>
+                                    <span class="movie-rating">${getDisplayRating(movie)}</span>
+                                    <span class="movie-duration">${durationText}</span>
                                 </div>
                             </div>
                             <button class="btn-book" onclick="event.stopPropagation(); goToBooking('${movieId}')">
@@ -282,8 +282,8 @@
                             <h2>${titleText}</h2>
                             <div class="detail-meta">
                                 <span class="badge">${escapeHtml(movie.ageRating || 'SU')}</span>
-                                <span class="meta-item">⏱️ ${typeof movie.duration === 'number' ? `${movie.duration} menit` : 'Durasi tidak tersedia'}</span>
-                                <span class="meta-item">⭐ ${ratingText}</span>
+                                <span class="meta-item">${typeof movie.duration === 'number' ? `${movie.duration} menit` : 'Durasi tidak tersedia'}</span>
+                                <span class="meta-item">${ratingText}</span>
                             </div>
                             <p class="detail-genre">${genreText}</p>
                             <p class="detail-description">${descriptionText}</p>

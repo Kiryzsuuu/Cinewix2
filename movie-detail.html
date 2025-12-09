@@ -180,8 +180,8 @@
                     <h1>${titleText}</h1>
                     <div class="hero-meta">
                         <span class="badge">${movie.ageRating || 'SU'}</span>
-                        <span class="meta-item">⏱️ ${movie.duration} menit</span>
-                        <span class="meta-item">⭐ ${ratingText}</span>
+                        <span class="meta-item">${movie.duration} menit</span>
+                        <span class="meta-item">${ratingText}</span>
                     </div>
                     <p class="hero-genre">${genreText}</p>
                     <p class="hero-description">${descriptionText}</p>
@@ -249,7 +249,7 @@
                                 <h3 class="review-author">${author}</h3>
                                 <p class="review-date">${formatDateTime(review.createdAt)}</p>
                             </div>
-                            <span class="review-rating">⭐ ${review.rating}/5</span>
+                            <span class="review-rating">${review.rating}/5</span>
                         </header>
                         <p class="review-comment">${commentText}</p>
                     </article>

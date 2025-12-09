@@ -225,8 +225,8 @@
                         <div class="movie-meta">
                             <p class="movie-genre">${Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre}</p>
                             <div class="movie-stats">
-                                <span class="movie-rating"><span class="star-icon">⭐</span> ${movie.rating}/10</span>
-                                <span class="movie-duration"><span class="clock-icon">⏱️</span> ${movie.duration} menit</span>
+                                <span class="movie-rating">${movie.rating}/10</span>
+                                <span class="movie-duration">${movie.duration} menit</span>
                             </div>
                         </div>
                         <button class="btn-book" onclick="event.stopPropagation(); goToMovies('${movie._id}')">
