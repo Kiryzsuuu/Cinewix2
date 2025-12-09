@@ -8,6 +8,21 @@ const register = async (req, res) => {
     try {
         const { firstName, lastName, email, password, phone } = req.body;
 
+        // Validate required fields
+        if (!firstName || !lastName || !email || !password || !phone) {
+            return res.status(400).json({
+                success: false,
+                message: 'Semua field harus diisi',
+                missing: {
+                    firstName: !firstName,
+                    lastName: !lastName,
+                    email: !email,
+                    password: !password,
+                    phone: !phone
+                }
+            });
+        }
+
         // Check if user exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -39,7 +54,7 @@ const register = async (req, res) => {
         try {
             await sendWelcomeEmail(email, firstName, verificationCode);
         } catch (emailError) {
-            console.error('Email sending failed:', emailError);
+            console.error('Email sending failed:', emailError.message);
             // Continue anyway, user is created
         }
 
