@@ -18,4 +18,34 @@ router.get('/env-check', (req, res) => {
     });
 });
 
+// Test register endpoint without database
+router.post('/test-register', async (req, res) => {
+    try {
+        const { firstName, lastName, email, password, phone } = req.body;
+        
+        // Just echo back the data
+        res.json({
+            success: true,
+            message: 'Test successful - data received',
+            receivedData: {
+                firstName,
+                lastName,
+                email,
+                phone: phone ? 'present' : 'missing',
+                password: password ? 'present' : 'missing'
+            },
+            dependencies: {
+                bcrypt: require('bcryptjs') ? 'loaded' : 'missing',
+                User: 'skipped for test'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
 module.exports = router;
